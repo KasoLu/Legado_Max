@@ -128,6 +128,9 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             PreferKey.useZhLayout -> ReadBookConfig.useZhLayout =
                 appCtx.getPrefBoolean(PreferKey.useZhLayout)
 
+            PreferKey.strictCharLayout -> ReadBookConfig.strictCharLayout =
+                appCtx.getPrefBoolean(PreferKey.strictCharLayout)
+
             PreferKey.userAgent -> userAgent = getPrefUserAgent()
 
             PreferKey.customHosts -> {

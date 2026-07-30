@@ -1005,6 +1005,7 @@
     <string name="debug">Debug</string>
     <string name="crash_log">Crash log</string>
     <string name="use_zh_layout">Custom Chinese line feed</string>
+    <string name="strict_char_layout">Strict character layout</string>
     <string name="image_style">Style of Images</string>
     <string name="system_tts">System tts</string>
     <string name="export_type">Exported file format</string>
@@ -1546,11 +1547,11 @@
     <string name="last_read_s">最近阅读 %1$s</string>
     <string name="show_read_record_in_book_info">显示阅读记录</string>
     <string name="words">字</string>
-    <string name="app_name_sigma">阅读Max</string>
-    <string name="about_description_sigma">\u3000\u3000阅读Max继承自阅读Sigma，旨在原版基础上完善和增加功能，欢迎您的加入。</string>
+    <string name="app_name_sigma">阅读Kaso</string>
+    <string name="about_description_sigma">\u3000\u3000阅读Kaso继承自阅读Sigma，旨在原版基础上完善和增加功能，欢迎您的加入。</string>
     <string name="contributors_summary_sigma">gedoor、Luoyacheng、Horis、Xwite、GEd520、youfengknight 等，详情请在 GitHub 中查看</string>
     <string name="app_share_description_sigma">
-        阅读 Max 下载地址：\nhttps://github.com/
+        阅读 Kaso 下载地址：\nhttps://github.com/
     </string>
     <string name="sure_cache_book">是否确认开始缓存？</string>
     <string name="non_printable_set">不可视字符设定</string>

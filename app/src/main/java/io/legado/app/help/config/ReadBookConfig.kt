@@ -253,6 +253,7 @@ object ReadBookConfig {
     var hideStatusBar = appCtx.getPrefBoolean(PreferKey.hideStatusBar)
     var hideNavigationBar = appCtx.getPrefBoolean(PreferKey.hideNavigationBar)
     var useZhLayout = appCtx.getPrefBoolean(PreferKey.useZhLayout)
+    var strictCharLayout = appCtx.getPrefBoolean(PreferKey.strictCharLayout)
 
     val config get() = if (shareLayout) shareConfig else durConfig
 

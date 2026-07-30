@@ -118,6 +118,7 @@ class TextChapterLayout(
     private val paragraphIndent = ReadBookConfig.paragraphIndent
     private val titleMode = ReadBookConfig.titleMode
     private val useZhLayout = ReadBookConfig.useZhLayout
+    private val strictCharLayout = ReadBookConfig.strictCharLayout
     private val isMiddleTitle = ReadBookConfig.isMiddleTitle
     private val isRightTitle = ReadBookConfig.isRightTitle
     private val textFullJustify = ReadBookConfig.textFullJustify
@@ -1409,8 +1410,9 @@ class TextChapterLayout(
         textPaint.getTextWidthsCompat(text, widthsArray, reviewCharWidth)
         val layout = if (useZhLayout) {
             val (words, widths) = measureTextSplit(text, widthsArray)
+            val (groupedWords, groupedWidths) = groupAlphaNumeric(words, widths)
             val indentSize = if (isFirstLine) paragraphIndent.length else 0
-            ZhLayout(text, textPaint, visibleWidth, words, widths, indentSize)
+            ZhLayout(text, textPaint, visibleWidth, groupedWords, groupedWidths, indentSize, strictCharLayout)
         } else {
             StaticLayout(styledText, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         }
@@ -1840,6 +1842,42 @@ class TextChapterLayout(
             floatArray = FloatArray(size)
         }
         return floatArray
+    }
+
+    /**
+     * Group consecutive ASCII alphanumeric characters (a-z, A-Z, 0-9) into single words,
+     * so ZhLayout treats them as atomic units for line breaking (e.g. "2026" won't be split).
+     */
+    private fun groupAlphaNumeric(
+        words: ArrayList<String>,
+        widths: ArrayList<Float>
+    ): Pair<ArrayList<String>, ArrayList<Float>> {
+        val groupedWords = ArrayList<String>(words.size)
+        val groupedWidths = ArrayList<Float>(words.size)
+        var i = 0
+        while (i < words.size) {
+            val word = words[i]
+            if (word.length == 1 && word[0].isAsciiAlphaNumeric()) {
+                val sb = StringBuilder()
+                var totalWidth = 0f
+                while (i < words.size && words[i].length == 1 && words[i][0].isAsciiAlphaNumeric()) {
+                    sb.append(words[i])
+                    totalWidth += widths[i]
+                    i++
+                }
+                groupedWords.add(sb.toString())
+                groupedWidths.add(totalWidth)
+            } else {
+                groupedWords.add(word)
+                groupedWidths.add(widths[i])
+                i++
+            }
+        }
+        return groupedWords to groupedWidths
+    }
+
+    private fun Char.isAsciiAlphaNumeric(): Boolean {
+        return this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9'
     }
 
     private fun measureTextSplit(
