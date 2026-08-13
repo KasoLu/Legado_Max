@@ -119,6 +119,20 @@
 		<item>@string/adjust_chapter_index</item>
 	</string-array>
 
+	<string-array name="web_view_dialog_height_title">
+		<item>@string/web_view_dialog_height_follow</item>
+		<item>@string/web_view_dialog_height_half</item>
+		<item>@string/web_view_dialog_height_two_thirds</item>
+		<item>@string/web_view_dialog_height_four_fifths</item>
+	</string-array>
+
+	<string-array name="web_view_dialog_height_value">
+		<item>0</item>
+		<item>0.5</item>
+		<item>0.6667</item>
+		<item>0.8</item>
+	</string-array>
+
 	<string-array name="icon_names" tools:ignore="Typos">
 		<item>iconMain</item>
 		<item>icon1</item>

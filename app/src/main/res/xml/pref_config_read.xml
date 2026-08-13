@@ -94,6 +94,15 @@
         app:iconSpaceReserved="false"
         app:isBottomBackground="true" />
 
+    <io.legado.app.lib.prefs.NameListPreference
+        android:defaultValue="0.8"
+        android:entries="@array/web_view_dialog_height_title"
+        android:entryValues="@array/web_view_dialog_height_value"
+        android:key="webViewDialogHeight"
+        android:title="@string/web_view_dialog_height"
+        app:iconSpaceReserved="false"
+        app:isBottomBackground="true" />
+
     <io.legado.app.lib.prefs.SwitchPreference
         android:defaultValue="true"
         android:key="adaptSpecialStyle"

@@ -861,8 +861,13 @@
     <string name="night_background_color">夜间，背景色</string>
     <string name="night_navbar_color">夜间，底栏色</string>
     <string name="auto_change_source">自动换源</string>
-    <string name="text_full_justify">文字两端对齐</string>
-    <string name="text_bottom_justify">文字底部对齐</string>
+<string name="text_full_justify">文字两端对齐</string>
+<string name="text_bottom_justify">文字底部对齐</string>
+<string name="web_view_dialog_height">网页弹窗高度</string>
+<string name="web_view_dialog_height_follow">跟随书源</string>
+<string name="web_view_dialog_height_half">半屏 (1/2)</string>
+<string name="web_view_dialog_height_two_thirds">三分之二屏 (2/3)</string>
+<string name="web_view_dialog_height_four_fifths">五分之四屏 (4/5)</string>
     <string name="auto_page_speed">自动翻页速度</string>
     <string name="sort_by_url">地址排序</string>
     <string name="backup_summary">本地和 WebDav 一起备份</string>

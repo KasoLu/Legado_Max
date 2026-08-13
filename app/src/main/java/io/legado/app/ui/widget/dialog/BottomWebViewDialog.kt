@@ -36,6 +36,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.legado.app.R
 import io.legado.app.constant.AppConst
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.BaseSource
 import io.legado.app.databinding.DialogWebViewBinding
@@ -82,6 +83,7 @@ import io.legado.app.utils.ACache
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.get
+import io.legado.app.utils.getPrefString
 import io.legado.app.utils.writeBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
@@ -364,6 +366,32 @@ class BottomWebViewDialog() : BottomSheetDialogFragment(R.layout.dialog_web_view
                 setLongClickSaveImg()
             } else {
                 currentWebView.setOnLongClickListener(null)
+            }
+        }
+
+        // 本地用户设置：覆盖书源下发的弹窗高度（值为 0 时跟随书源）
+        // 高度按窗口全屏高度 × 比例计算，内容完全贴底、不做底部避让。
+        // 底部系统栏由系统级方案处理（immersive 隐藏时 insets 归零、无遮挡物）；
+        // 弹窗最高 4/5，顶部不会进入状态栏区域，无需顶部避让。
+        context?.getPrefString(PreferKey.webViewDialogHeight)?.toFloatOrNull()?.let { ratio ->
+            if (ratio > 0f && ratio <= 1f) {
+                dialog?.window?.decorView?.let { decorView ->
+                    decorView.post {
+                        val height = (decorView.height * ratio).toInt()
+                        if (height > 0) {
+                            bottomSheet?.let { sheet ->
+                                val params = sheet.layoutParams
+                                params.height = height
+                                sheet.layoutParams = params
+                                // 关闭系统自动的系统栏 padding，内容完全贴底
+                                sheet.setFitsSystemWindows(false)
+                                sheet.setPadding(0, 0, 0, 0)
+                                behavior?.peekHeight = height
+                                behavior?.maxHeight = height
+                            }
+                        }
+                    }
+                }
             }
         }
     }
