@@ -65,7 +65,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "io.legado.app.yuedu"
+        applicationId "io.legado.app.kaso"
         minSdk 21
         targetSdk 36
         versionCode releaseCode()
@@ -98,7 +98,7 @@ android {
     productFlavors {
         appS {
             dimension "app"
-            applicationId "io.legado.app.yuedu.a"
+            applicationId "io.legado.app.kaso.a"
             manifestPlaceholders = [app_name: "@string/app_name_a"]
         }
         appLegacy {
@@ -108,7 +108,7 @@ android {
         }
         appMax {
             dimension "app"
-            applicationId "io.legado.app.yuedu"
+            applicationId "io.legado.app.kaso"
             manifestPlaceholders = [app_name: "@string/app_name"]
         }
     }
