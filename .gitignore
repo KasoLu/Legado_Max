@@ -25,3 +25,5 @@ package-lock.json
 .vscode
 *.hprof*.hprof
 .docs
+.omo/
+.artifacts/
