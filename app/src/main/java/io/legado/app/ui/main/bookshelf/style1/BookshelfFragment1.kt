@@ -112,9 +112,12 @@ class BookshelfFragment1() : BaseBookshelfFragment(R.layout.fragment_bookshelf1)
 
     private fun selectLastTab() {
         tabLayout.post {
-            tabLayout.removeOnTabSelectedListener(this)
-            tabLayout.getTabAt(AppConfig.saveTabPosition)?.select()
-            tabLayout.addOnTabSelectedListener(this)
+            val pos = AppConfig.saveTabPosition
+            if (pos in 0 until adapter.count) {
+                tabLayout.removeOnTabSelectedListener(this)
+                binding.viewPagerBookshelf.setCurrentItem(pos, false)
+                tabLayout.addOnTabSelectedListener(this)
+            }
         }
     }
 
