@@ -101,7 +101,6 @@ import io.legado.app.help.webView.WebViewPool
 import io.legado.app.help.webView.WebViewPool.BLANK_HTML
 import io.legado.app.help.webView.WebViewPool.DATA_HTML
 import io.legado.app.model.Download
-import io.legado.app.model.VideoPlay
 import kotlinx.coroutines.Dispatchers.IO
 import java.lang.ref.WeakReference
 import splitties.systemservices.powerManager
@@ -1041,9 +1040,6 @@ class ReadRssActivity : VMBaseActivity<ActivityRssReadBinding, ReadRssViewModel>
                     view.evaluateJavascript(it, null)
                 }
             }
-            // 网页h5的video标签播放器静音播放视频
-            // @param mutePlay 是否静音播放视频
-            if (VideoPlay.mutePlay) {
                 view.evaluateJavascript(
                     "(function(){return document.querySelectorAll('video,audio').length;})()"
                 ) { result ->
@@ -1069,7 +1065,6 @@ class ReadRssActivity : VMBaseActivity<ActivityRssReadBinding, ReadRssViewModel>
                     })();
                 """.trimIndent()
                 view.evaluateJavascript(muteJs, null)
-            }
         }
 
         private fun createEmptyResource(): WebResourceResponse {

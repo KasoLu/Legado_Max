@@ -160,22 +160,9 @@
                 android:resource="@xml/spen_remote_actions" />
         </activity>
 
-        <!-- 阅读漫画界面 -->
         <activity
             android:name=".ui.book.read.config.ReadAloudActivity"
             android:launchMode="singleTask" />
-        <activity
-            android:name=".ui.book.manga.ReadMangaActivity"
-            android:exported="false"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="com.samsung.android.support.REMOTE_ACTION" />
-            </intent-filter>
-
-            <meta-data
-                android:name="com.samsung.android.support.REMOTE_ACTION"
-                android:resource="@xml/spen_remote_actions" />
-        </activity>
         <!-- 书籍详情页 -->
         <activity
             android:name=".ui.book.info.BookInfoActivity"
@@ -187,11 +174,6 @@
         <!-- 音频播放界面 -->
         <activity
             android:name="io.legado.app.ui.book.audio.AudioPlayActivity"
-            android:launchMode="singleTask" />
-        <!-- 视频播放器界面 -->
-        <activity
-            android:name="io.legado.app.ui.video.VideoPlayerActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
             android:launchMode="singleTask" />
         <!-- 授权界面 -->
         <activity
@@ -590,21 +572,6 @@
             android:name=".service.ExportBookService"
             android:foregroundServiceType="dataSync" />
         <service
-            android:name=".service.WebService"
-            android:foregroundServiceType="dataSync" />
-        <service
-            android:name=".service.WebTileService"
-            android:exported="true"
-            android:foregroundServiceType="dataSync"
-            android:icon="@drawable/ic_web_service_noti"
-            android:label="legado Web Service"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
-            tools:targetApi="24">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-        <service
             android:name=".service.TTSReadAloudService"
             android:foregroundServiceType="mediaPlayback" />
         <service
@@ -612,9 +579,6 @@
             android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.AudioPlayService"
-            android:foregroundServiceType="mediaPlayback" />
-        <service
-            android:name=".service.VideoPlayService"
             android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.DownloadService"
@@ -628,12 +592,6 @@
             </intent-filter>
         </receiver>
 
-        <provider
-            android:name=".api.ReaderProvider"
-            android:authorities="${applicationId}.readerProvider"
-            android:enabled="true"
-            android:exported="true"
-            tools:ignore="ExportedContentProvider" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"

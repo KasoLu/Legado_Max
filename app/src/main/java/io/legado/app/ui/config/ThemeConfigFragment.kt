@@ -211,7 +211,6 @@ class ThemeConfigFragment : PreferenceFragment(),
             "coverConfig" -> startActivity<ConfigActivity> {
                 putExtra("configTag", ConfigTag.COVER_CONFIG)
             }
-
             "welcomeStyle" -> startActivity<ConfigActivity> {
                 putExtra("configTag", ConfigTag.WELCOME_CONFIG)
             }

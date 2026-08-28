@@ -102,9 +102,6 @@ class RssSourceEditActivity :
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
-        if (!LocalConfig.ruleHelpVersionIsLast) {
-            showHelp("rssRuleHelp")
-        }
     }
 
     override fun finish() {

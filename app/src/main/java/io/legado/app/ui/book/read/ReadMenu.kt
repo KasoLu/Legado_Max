@@ -142,9 +142,6 @@ class ReadMenu @JvmOverloads constructor(
         override fun onAnimationEnd(animation: Animation) {
             binding.vwMenuBg.setOnClickListener { runMenuOut() }
             callBack.upSystemUiVisibility()
-            if (!LocalConfig.readMenuHelpVersionIsLast) {
-                callBack.showHelp()
-            }
         }
 
         override fun onAnimationRepeat(animation: Animation) = Unit

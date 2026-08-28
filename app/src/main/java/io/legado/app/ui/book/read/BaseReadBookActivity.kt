@@ -104,13 +104,6 @@ abstract class BaseReadBookActivity :
                 title = "选择书籍所在文件夹"
             }
         }
-        if (!LocalConfig.readHelpVersionIsLast) {
-            if (isTv) {
-                showCustomPageKeyConfig()
-            } else {
-                showClickRegionalConfig()
-            }
-        }
     }
 
     private fun onBottomDialogChange() {

@@ -51,7 +51,6 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.Cache
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.help.book.BookHelp
-import io.legado.app.model.VideoPlay.VIDEO_PREF_NAME
 import io.legado.app.ui.book.read.config.HighlightRuleStore
 import io.legado.app.data.repository.CoverGalleryRepository
 
@@ -110,7 +109,6 @@ data class BookCacheIndex(
  * - dictRule.json: 词典规则
  * - servers.json: 服务器配置（加密存储）
  * - config.xml: 应用配置
- * - videoConfig.xml: 视频播放配置
  */
 object Backup {
     private const val runtimeSourceCacheFileName = "runtimeSourceCache.json"
@@ -157,7 +155,6 @@ object Backup {
             ThemeConfig.configFileName,
             BookCover.configFileName,
             "config.xml",
-            "videoConfig.xml",
             CoverGalleryRepository.backupDirName
         )
     }
@@ -585,25 +582,6 @@ object Backup {
         }
 
         currentCoroutineContext().ensureActive()
-
-        // 导出视频播放配置
-        if (selectedFiles.contains("videoConfig.xml")) {
-            onProgress?.invoke(BackupInfoHelper.getDisplayName("videoConfig.xml"))
-            appCtx.getSharedPreferences(backupPath, "videoConfig")?.let { sp ->
-                sp.edit(commit = true) {
-                    clear()
-                    appCtx.getSharedPreferences(VIDEO_PREF_NAME, Context.MODE_PRIVATE).all.forEach { (key, value) ->
-                        when (value) {
-                            is Int -> putInt(key, value)
-                            is Boolean -> putBoolean(key, value)
-                            is Long -> putLong(key, value)
-                            is Float -> putFloat(key, value)
-                            is String -> putString(key, value)
-                        }
-                    }
-                }
-            }
-        }
 
         currentCoroutineContext().ensureActive()
 

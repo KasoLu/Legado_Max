@@ -304,22 +304,6 @@ interface JsExtensions : JsEncodeUtils {
         }
     }
 
-    @JavascriptInterface
-    fun openVideoPlayer(url: String, title: String) {
-        openVideoPlayer(url, title, false)
-    }
-
-    /**
-     * 打开内置视频播放器
-     * @param url 视频播放链接
-     * @param title 视频的标题
-     * @param isFloat 是否悬浮窗打开
-     */
-    @JavascriptInterface
-    fun openVideoPlayer(url: String, title: String, isFloat: Boolean) {
-        SourceHelp.openVideoPlayer(getSource(), url, title, isFloat)
-    }
-
     /**
      * 使用内置浏览器打开链接，手动验证网站防爬
      * @param url 要打开的链接

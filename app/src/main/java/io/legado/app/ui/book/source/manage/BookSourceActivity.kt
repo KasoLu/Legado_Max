@@ -154,9 +154,6 @@ class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceV
         initLiveDataGroup()
         initSelectActionBar()
         resumeCheckSource()
-        if (!LocalConfig.bookSourcesHelpVersionIsLast) {
-            showHelp("SourceMBookHelp")
-        }
     }
 
     override fun onNewIntent(intent: Intent) {

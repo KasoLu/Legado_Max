@@ -343,12 +343,6 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="2"
-                    android:importantForAccessibility="no" />
-
                 <!--调节按钮-->
                 <LinearLayout
                     android:id="@+id/ll_read_aloud"
@@ -360,6 +354,7 @@
                     android:focusable="true"
                     android:orientation="vertical"
                     android:paddingBottom="7dp"
+                    android:visibility="gone"
                     tools:ignore="VisualLintBounds">
 
                     <androidx.appcompat.widget.AppCompatImageView

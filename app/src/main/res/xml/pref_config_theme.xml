@@ -12,6 +12,11 @@
         app:iconSpaceReserved="false"
         app:icons="@array/icons" />
 
+    <io.legado.app.lib.prefs.Preference
+        android:key="welcomeStyle"
+        android:title="@string/welcome_style"
+        android:summary="@string/welcome_style_summary" />
+
     <io.legado.app.lib.prefs.SwitchPreference
         android:defaultValue="true"
         android:key="transparentStatusBar"

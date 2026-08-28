@@ -267,12 +267,6 @@ dependencies {
     // For exposing and controlling media sessions
     //implementation "androidx.media3:media3-session:$media3_version"
     
-    //videoPlayer
-    implementation(libs.gsyVideoPlayer.java)
-    implementation(libs.gsyVideoPlayer.exo2)
-    //弹幕
-    implementation (libs.danmakuFlameMaster)
-    
     //Splitties
     implementation(libs.splitties.appctx)
     implementation(libs.splitties.systemservices)
@@ -318,9 +312,6 @@ dependencies {
     // 重新添加glide核心库以保持兼容
     implementation(libs.glide.glide)
     
-    //webServer
-    implementation(libs.nanohttpd.nanohttpd)
-    implementation(libs.nanohttpd.websocket)
     
     //二维码
     //noinspection GradleDependency

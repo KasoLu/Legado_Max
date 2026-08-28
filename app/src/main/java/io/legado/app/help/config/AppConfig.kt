@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import android.os.Build
 import io.legado.app.BuildConfig
 import io.legado.app.constant.AppConst
-import io.legado.app.constant.MangaReadMode
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
 import io.legado.app.utils.GSON
@@ -38,7 +37,6 @@ import java.net.InetAddress
  * - 网络配置（userAgent, customHosts, webPort 等）
  * - TTS朗读配置（ttsEngine, ttsSpeechRate 等）
  * - 导出配置（exportCharset, exportType 等）
- * - 漫画模式配置（showMangaUi, mangaPreDownloadNum 等）
  * - 书架配置（bookshelfLayout, bookshelfSort 等）
  */
 @Suppress("MemberVisibilityCanBePrivate", "ConstPropertyName")
@@ -250,17 +248,6 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
 
     val textSelectAble: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.textSelectAble, true)
-
-    var mangaReadMode: String
-        get() = appCtx.getPrefString(PreferKey.mangaReadMode)?.takeIf { it.isNotBlank() }
-            ?: if (appCtx.getPrefBoolean(PreferKey.enableMangaHorizontalScroll, false)) {
-                MangaReadMode.NORMAL
-            } else {
-                MangaReadMode.SCROLL
-            }
-        set(value) {
-            appCtx.putPrefString(PreferKey.mangaReadMode, value)
-        }
 
     val isTransparentStatusBar: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.transparentStatusBar, true)
@@ -528,26 +515,6 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
         get() = appCtx.getPrefString(PreferKey.ttsEngine)
         set(value) {
             appCtx.putPrefString(PreferKey.ttsEngine, value)
-        }
-
-    var webPort: Int
-        get() = appCtx.getPrefInt(PreferKey.webPort, 1122)
-        set(value) {
-            appCtx.putPrefInt(PreferKey.webPort, value)
-        }
-
-    var webServiceAuthEnabled: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.webServiceAuthEnabled, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.webServiceAuthEnabled, value)
-        }
-
-    var webServiceToken: String
-        get() = appCtx.getPrefString(PreferKey.webServiceToken, "")
-            .orEmpty()
-            .ifBlank { AppConst.androidId }
-        set(value) {
-            appCtx.putPrefString(PreferKey.webServiceToken, value)
         }
 
     var unsafeSsl: Boolean
@@ -842,99 +809,13 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
         }
     }
 
-    //跳转到漫画界面不使用富文本模式
-    val showMangaUi: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.showMangaUi, true)
-
-    //禁用漫画缩放
-    var disableMangaScale: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.disableMangaScale, true)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.disableMangaScale, value)
-        }
-
-    var disableMangaPageAnim: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.disableMangaPageAnim, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.disableMangaPageAnim, value)
-        }
-
-    //漫画预加载数量
-    var mangaPreDownloadNum
-        get() = appCtx.getPrefInt(PreferKey.mangaPreDownloadNum, 10)
-        set(value) {
-            appCtx.putPrefInt(PreferKey.mangaPreDownloadNum, value)
-        }
-
-    //点击翻页
-    var disableClickScroll
-        get() = appCtx.getPrefBoolean(PreferKey.disableClickScroll, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.disableClickScroll, value)
-        }
-
-    //漫画滚动速度
-    var mangaAutoPageSpeed
-        get() = appCtx.getPrefInt(PreferKey.mangaAutoPageSpeed, 3)
-        set(value) {
-            appCtx.putPrefInt(PreferKey.mangaAutoPageSpeed, value)
-        }
-
-    //漫画页脚配置
-    var mangaFooterConfig
-        get() = appCtx.getPrefString(PreferKey.mangaFooterConfig, "")
-        set(value) {
-            appCtx.putPrefString(PreferKey.mangaFooterConfig, value)
-        }
-
-    //漫画水平滚动
-    var enableMangaHorizontalScroll
-        get() = mangaReadMode != MangaReadMode.SCROLL
-        set(value) {
-            mangaReadMode = if (value) {
-                MangaReadMode.NORMAL
-            } else {
-                MangaReadMode.SCROLL
-            }
-        }
-
-    var mangaColorFilter
-        get() = appCtx.getPrefString(PreferKey.mangaColorFilter, "")
-        set(value) {
-            appCtx.putPrefString(PreferKey.mangaColorFilter, value)
-        }
-
-    //禁用漫画内标题
-    var hideMangaTitle
-        get() = appCtx.getPrefBoolean(PreferKey.hideMangaTitle, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.hideMangaTitle, value)
-        }
-
-    //开启墨水屏模式
-    var enableMangaEInk
-        get() = appCtx.getPrefBoolean(PreferKey.enableMangaEInk, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.enableMangaEInk, value)
-        }
-
-    var mangaEInkThreshold
-        get() = appCtx.getPrefInt(PreferKey.mangaEInkThreshold, 150)
-        set(value) {
-            appCtx.putPrefInt(PreferKey.mangaEInkThreshold, value)
-        }
-
     var disableHorizontalPageSnap
         get() = appCtx.getPrefBoolean(PreferKey.disableHorizontalPageSnap, false)
         set(value) {
             appCtx.putPrefBoolean(PreferKey.disableHorizontalPageSnap, value)
         }
 
-    var enableMangaGray
-        get() = appCtx.getPrefBoolean(PreferKey.enableMangaGray, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.enableMangaGray, value)
-        }
+    val autoUpdateVariant get() = appCtx.getPrefBoolean("autoUpdateVariant", true)
 
     var welcomeImage
         get() = appCtx.getPrefString(PreferKey.welcomeImage)
@@ -971,8 +852,6 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
         set(value) {
             appCtx.putPrefBoolean(PreferKey.welcomeShowIconDark, value)
         }
-
-    val autoUpdateVariant get() = appCtx.getPrefBoolean("autoUpdateVariant", true)
 
     // ==================== 字重精细调整配置 ====================
     

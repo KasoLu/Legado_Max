@@ -15,10 +15,6 @@ import io.legado.app.help.config.SourceConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.model.AudioPlay
 import io.legado.app.model.ReadBook
-import io.legado.app.model.ReadManga
-import io.legado.app.model.VideoPlay
-import io.legado.app.service.VideoPlayService
-import io.legado.app.ui.video.VideoPlayerActivity
 import io.legado.app.utils.EncoderUtils
 import io.legado.app.utils.NetworkUtils
 import io.legado.app.utils.splitNotBlank
@@ -45,10 +41,6 @@ object SourceHelp {
             return ReadBook.bookSource
         } else if (AudioPlay.bookSource?.bookSourceUrl == key) {
             return AudioPlay.bookSource
-        } else if (ReadManga.bookSource?.bookSourceUrl == key) {
-            return ReadManga.bookSource
-        } else if (VideoPlay.source?.getKey() == key) {
-            return VideoPlay.source
         }
         return appDb.bookSourceDao.getBookSource(key)
             ?: appDb.rssSourceDao.getByKey(key)
@@ -196,25 +188,6 @@ object SourceHelp {
                 bookSource.customOrder = index
             }
             appDb.bookSourceDao.upOrder(sources)
-        }
-    }
-
-    fun openVideoPlayer(source: BaseSource?, url: String, title: String, isFloat: Boolean) {
-        if (isFloat) {
-            val intent = Intent(appCtx, VideoPlayService::class.java).apply {
-                putExtra("videoUrl", url)
-                putExtra("videoTitle", title)
-                putExtra("sourceKey", source?.getKey())
-                putExtra("sourceType", source?.getSourceType())
-            }
-            ContextCompat.startForegroundService(appCtx, intent)
-        } else {
-            appCtx.startActivity<VideoPlayerActivity> {
-                putExtra("videoUrl", url)
-                putExtra("videoTitle", title)
-                putExtra("sourceKey", source?.getKey())
-                putExtra("sourceType", source?.getSourceType())
-            }
         }
     }
 

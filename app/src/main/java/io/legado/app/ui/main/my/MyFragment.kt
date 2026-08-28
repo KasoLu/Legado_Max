@@ -33,7 +33,6 @@ import io.legado.app.ui.download.DownloadManageActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.help.config.AppConfig
 import io.legado.app.ui.replace.ReplaceRuleActivity
-import io.legado.app.service.WebService
 import io.legado.app.utils.LogUtils
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.observeEvent
@@ -84,32 +83,9 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
         SharedPreferences.OnSharedPreferenceChangeListener {
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            putPrefBoolean(PreferKey.webService, WebService.isRun)
             addPreferencesFromResource(R.xml.pref_main)
             // 根据调试模式设置决定是否显示调试工具入口
             findPreference<Preference>("debugTools")?.isVisible = AppConfig.debugMode
-            findPreference<SwitchPreference>("webService")?.onLongClick {
-                if (!WebService.isRun) {
-                    return@onLongClick false
-                }
-                context?.selector(arrayListOf("复制地址", "浏览器打开")) { _, i ->
-                    when (i) {
-                        0 -> context?.sendToClip(it.summary.toString())
-                        1 -> context?.openUrl(it.summary.toString())
-                    }
-                }
-                true
-            }
-            observeEventSticky<String>(EventBus.WEB_SERVICE) {
-                findPreference<SwitchPreference>(PreferKey.webService)?.let {
-                    it.isChecked = WebService.isRun
-                    it.summary = if (WebService.isRun) {
-                        WebService.hostAddress
-                    } else {
-                        getString(R.string.web_service_desc)
-                    }
-                }
-            }
             findPreference<NameListPreference>(PreferKey.themeMode)?.let {
                 it.setOnPreferenceChangeListener { _, _ ->
                     view?.post { ThemeConfig.applyDayNight(requireContext()) }
@@ -142,13 +118,6 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
             key: String?
         ) {
             when (key) {
-                PreferKey.webService -> {
-                    if (requireContext().getPrefBoolean("webService")) {
-                        WebService.start(requireContext())
-                    } else {
-                        WebService.stop(requireContext())
-                    }
-                }
 
                 PreferKey.debugMode -> {
                     findPreference<Preference>("debugTools")?.isVisible = AppConfig.debugMode
@@ -184,9 +153,6 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
                 "readRecord" -> startActivity<ReadRecordActivity>()
                 "storageManage" -> startActivity<StorageManageActivity>()
                 "downloadManage" -> startActivity<DownloadManageActivity>()
-                "web_service_setting" -> startActivity<ConfigActivity> {
-                    putExtra("configTag", ConfigTag.WEB_SERVICE_CONFIG)
-                }
                 "advancedConfig" -> startActivity<ConfigActivity> {
                     putExtra("configTag", ConfigTag.ADVANCED_CONFIG)
                 }

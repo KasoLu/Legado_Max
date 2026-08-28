@@ -28,7 +28,6 @@ import io.legado.app.lib.prefs.fragment.PreferenceFragment
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.receiver.SharedReceiverActivity
 import io.legado.app.ui.file.HandleFileContract
-import io.legado.app.ui.video.config.SettingsDialog
 import io.legado.app.ui.widget.number.NumberPickerDialog
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.postEvent
@@ -89,7 +88,6 @@ class OtherConfigFragment : PreferenceFragment(),
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
             PreferKey.userAgent -> showUserAgentDialog()
-            PreferKey.videoSetting -> showDialogFragment(SettingsDialog(requireActivity()))
             PreferKey.defaultBookTreeUri -> localBookTreeSelect.launch {
                 title = getString(R.string.select_book_folder)
                 mode = HandleFileContract.DIR_SYS

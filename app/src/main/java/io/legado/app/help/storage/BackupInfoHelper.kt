@@ -64,7 +64,7 @@ object BackupInfoHelper {
         CategoryDef(
             "配置相关",
             "⚙️",
-            listOf("config", "videoConfig", "readConfig", "shareConfig", "coverRule", "servers", "directLink")
+            listOf("config", "readConfig", "shareConfig", "coverRule", "servers", "directLink")
         )
     )
 
@@ -107,7 +107,6 @@ object BackupInfoHelper {
         DirectLinkUpload.ruleFileName to "直链上传配置",
         "backgroundImages" to "阅读背景",
         "config.xml" to "应用配置",
-        "videoConfig.xml" to "视频配置"
     )
 
     fun getDisplayName(fileName: String): String {
@@ -211,7 +210,6 @@ object BackupInfoHelper {
             ThemeConfig.configFileName,
             BookCover.configFileName,
             "config.xml",
-            "videoConfig.xml"
         ).forEach { fileName ->
             val file = File(appCtx.filesDir, fileName)
             addItem(fileName, if (file.exists()) file.length() else 0L)

@@ -39,9 +39,6 @@ import kotlin.math.min
 val Book.isAudio: Boolean
     get() = isType(BookType.audio)
 
-val Book.isVideo: Boolean
-    get() = isType(BookType.video)
-
 val Book.isImage: Boolean
     get() = isType(BookType.image)
 

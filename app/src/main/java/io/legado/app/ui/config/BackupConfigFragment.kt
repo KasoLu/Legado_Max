@@ -179,9 +179,6 @@ class BackupConfigFragment : PreferenceFragment(),
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
         listView.setEdgeEffectColor(primaryColor)
         activity?.addMenuProvider(this, viewLifecycleOwner)
-        if (!LocalConfig.backupHelpVersionIsLast) {
-            showHelp("webDavHelp")
-        }
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {

@@ -29,6 +29,7 @@
         android:id="@+id/menu_aloud"
         android:title="@string/read_aloud"
         android:icon="@drawable/ic_volume_up"
+        android:visible="false"
         app:showAsAction="ifRoom" />
 
     <item

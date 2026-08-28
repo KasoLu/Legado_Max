@@ -15,7 +15,6 @@ import io.legado.app.data.entities.RssSource
 import io.legado.app.help.JsExtensions
 import io.legado.app.model.AudioPlay
 import io.legado.app.model.ReadBook
-import io.legado.app.model.VideoPlay
 import io.legado.app.model.analyzeRule.AnalyzeRule
 import io.legado.app.model.analyzeRule.AnalyzeRule.Companion.setChapter
 import io.legado.app.ui.association.AddToBookshelfDialog
@@ -260,11 +259,6 @@ open class RssJsExtensions(
             BookType.audio -> {
                 book = AudioPlay.book
                 chapter = AudioPlay.durChapter
-            }
-
-            BookType.video -> {
-                book = VideoPlay.book
-                chapter = VideoPlay.chapter
             }
         }
         Pair(book, chapter)

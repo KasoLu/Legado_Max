@@ -32,7 +32,6 @@ import org.apache.commons.text.StringEscapeUtils
 import splitties.init.appCtx
 import io.legado.app.help.book.isAudio
 import io.legado.app.help.book.isOnLineTxt
-import io.legado.app.help.book.isVideo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 
@@ -100,7 +99,7 @@ object BookContent {
         analyzeRule.setToastRuleType("CONTENT")
         
         var content = analyzeRule.getString(contentRule.content, unescape = false)
-        if (!book.isAudio && !book.isVideo) {
+        if (!book.isAudio) {
             val useHtmlMap = mutableMapOf<String, String>()
             if (AppConfig.adaptSpecialStyle) {
                 content = AppPattern.useHtmlRegex.replace(content) { matchResult ->
@@ -300,12 +299,6 @@ object BookContent {
                             Debug.log(bookSource.bookSourceUrl, "┌获取副文歌词")
                             Debug.log(bookSource.bookSourceUrl, "└\n$subContent")
                         }
-
-                        book.isVideo -> {
-                            bookChapter.putDanmaku(subContent)
-                            Debug.log(bookSource.bookSourceUrl, "┌获取副文弹幕")
-                            Debug.log(bookSource.bookSourceUrl, "└\n$subContent")
-                        }
                     }
                 }.onFailure { e ->
                     Debug.log(bookSource.bookSourceUrl, "获取副文出错, ${e.localizedMessage}")
@@ -435,7 +428,7 @@ object BookContent {
         analyzeRule.setChapter(chapter)
         //获取正文
         var content = analyzeRule.getString(contentRule.content, unescape = false)
-        if (!book.isAudio && !book.isVideo) { //音频和视频获取的是链接，不需要html格式化
+        if (!book.isAudio) { //音频和视频获取的是链接，不需要html格式化
             val useHtmlMap = mutableMapOf<String, String>()
             if (AppConfig.adaptSpecialStyle) {
                 content = AppPattern.useHtmlRegex.replace(content) { matchResult ->

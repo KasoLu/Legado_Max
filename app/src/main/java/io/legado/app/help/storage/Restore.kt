@@ -46,7 +46,6 @@ import io.legado.app.help.book.BookHelp
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.help.config.ThemeConfig
-import io.legado.app.model.VideoPlay.VIDEO_PREF_NAME
 import io.legado.app.model.BookCover
 import io.legado.app.model.localBook.LocalBook
 import io.legado.app.data.repository.CoverGalleryRepository
@@ -486,26 +485,6 @@ object Restore {
         fixThemeBackgroundPaths()
         fixThemeConfigBackgroundPaths()
 
-        // 恢复视频播放配置
-        if ("videoConfig.xml" in selectedSet) {
-            progress("videoConfig.xml")
-            readBackupPrefs(path, "videoConfig")?.let { map ->
-                appCtx.getSharedPreferences(VIDEO_PREF_NAME, Context.MODE_PRIVATE).edit().apply {
-                    clear()
-                    map.forEach { (key, value) ->
-                        when (value) {
-                            is Int -> putInt(key, value)
-                            is Boolean -> putBoolean(key, value)
-                            is Long -> putLong(key, value)
-                            is Float -> putFloat(key, value)
-                            is String -> putString(key, value)
-                        }
-                    }
-                    apply()
-                }
-            }
-        }
-
         // 应用阅读配置
         if (runtimeSourceCacheFileName in selectedSet) {
             progress(runtimeSourceCacheFileName)
@@ -842,24 +821,6 @@ object Restore {
         restoreBookCache(path)
         fixThemeBackgroundPaths()
         fixThemeConfigBackgroundPaths()
-
-        // 恢复视频播放配置
-        progress("videoConfig.xml")
-        readBackupPrefs(path, "videoConfig")?.let { map ->
-            appCtx.getSharedPreferences(VIDEO_PREF_NAME, Context.MODE_PRIVATE).edit().apply {
-                clear()
-                map.forEach { (key, value) ->
-                    when (value) {
-                        is Int -> putInt(key, value)
-                        is Boolean -> putBoolean(key, value)
-                        is Long -> putLong(key, value)
-                        is Float -> putFloat(key, value)
-                        is String -> putString(key, value)
-                    }
-                }
-                apply()
-            }
-        }
 
         // 应用阅读配置
         progress("applyRestoreConfig")
@@ -1551,7 +1512,6 @@ object Restore {
                 order = -6,
                 show = false
             ),
-            BookGroup(BookGroup.IdVideo, appCtx.getString(R.string.video), order = -5, show = true),
             BookGroup(
                 BookGroup.IdError,
                 appCtx.getString(R.string.update_book_fail),

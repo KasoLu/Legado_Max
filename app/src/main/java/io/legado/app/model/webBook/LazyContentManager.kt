@@ -6,7 +6,6 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.help.book.isAudio
-import io.legado.app.help.book.isVideo
 import io.legado.app.help.config.AppConfig
 import io.legado.app.utils.HtmlFormatter
 import io.legado.app.model.analyzeRule.AnalyzeRule
@@ -167,7 +166,7 @@ class LazyContentManager(
                     
                     var content = analyzeRule.getString(contentRule, unescape = false)
                     
-                    if (!book.isAudio && !book.isVideo) {
+                    if (!book.isAudio) {
                         val useHtmlMap = mutableMapOf<String, String>()
                         if (AppConfig.adaptSpecialStyle) {
                             content = AppPattern.useHtmlRegex.replace(content) { matchResult ->

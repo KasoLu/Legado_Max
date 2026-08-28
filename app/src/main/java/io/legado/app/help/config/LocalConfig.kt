@@ -64,48 +64,6 @@ by appCtx.getSharedPreferences("local_plus", Context.MODE_PRIVATE) {
         }
 
     /**
-     * 阅读帮助是否已是最新版本
-     * version=1, 首次打开阅读界面时显示帮助
-     */
-    val readHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "readHelpVersion", "firstRead")
-
-    /**
-     * 备份帮助是否已是最新版本
-     * version=1, 首次打开备份界面时显示帮助
-     */
-    val backupHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "backupHelpVersion", "firstBackup")
-
-    /**
-     * 阅读菜单帮助是否已是最新版本
-     * version=1, 首次打开阅读菜单时显示帮助
-     */
-    val readMenuHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "readMenuHelpVersion", "firstReadMenu")
-
-    /**
-     * 书源帮助是否已是最新版本
-     * version=1, 首次打开书源列表时显示帮助
-     */
-    val bookSourcesHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "bookSourceHelpVersion", "firstOpenBookSources")
-
-    /**
-     * WebDAV 书籍帮助是否已是最新版本
-     * version=1, 首次打开 WebDAV 书籍功能时显示帮助
-     */
-    val webDavBookHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "webDavBookHelpVersion", "firstOpenWebDavBook")
-
-    /**
-     * 规则帮助是否已是最新版本
-     * version=1
-     */
-    val ruleHelpVersionIsLast: Boolean
-        get() = isLastVersion(1, "ruleHelpVersion")
-
-    /**
      * 是否需要更新 HTTP TTS 默认配置
      * version=6, 版本号低于此值时会导入新的 HTTP TTS 配置
      */

@@ -6,7 +6,6 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.progress.ProgressManager.LISTENER
 import io.legado.app.help.glide.progress.ProgressResponseBody
 import io.legado.app.help.http.CookieManager.cookieJarHeader
-import io.legado.app.model.ReadManga
 import io.legado.app.utils.NetworkUtils
 import okhttp3.ConnectionSpec
 import okhttp3.Cookie
@@ -130,25 +129,6 @@ val okHttpClient: OkHttpClient by lazy {
     }
 }
 
-val okHttpClientManga by lazy {
-    okHttpClient.newBuilder().run {
-        val interceptors = interceptors()
-        interceptors.add(1) { chain ->
-            val request = chain.request()
-            val response = chain.proceed(request)
-            val url = request.url.toString()
-            response.newBuilder()
-                .body(ProgressResponseBody(url, LISTENER, response.body))
-                .build()
-        }
-        interceptors.add(1) { chain ->
-            ReadManga.rateLimiter.withLimitBlocking {
-                chain.proceed(chain.request())
-            }
-        }
-        build()
-    }
-}
 
 fun getProxyClient(proxy: String? = null): OkHttpClient {
     if (proxy.isNullOrBlank()) {

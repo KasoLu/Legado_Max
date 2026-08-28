@@ -20,7 +20,6 @@ import io.legado.app.databinding.FragmentChapterListBinding
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.isLocal
 import io.legado.app.help.book.readSimulating
-import io.legado.app.help.book.isVideo
 import io.legado.app.help.book.simulatedTotalChapterNum
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.bottomBackground
@@ -279,56 +278,6 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
 
     override fun openChapter(bookChapter: BookChapter) {
         activity?.run {
-            if (book?.isVideo == true) {
-                val volumes = arrayListOf<BookChapter>()
-                chapterList?.forEach { chapter ->
-                    if (chapter.isVolume) {
-                        volumes.add(chapter)
-                    }
-                }
-                var chapterInVolumeIndex = 0
-                var durVolumeIndex = 0
-                val chapters = chapterList
-                val chapterPosition = chapters?.indexOfFirst { it.index == bookChapter.index } ?: -1
-                if (volumes.isNotEmpty() && chapters != null && chapterPosition >= 0) {
-                    for ((index, volume) in volumes.withIndex()) {
-                        val volumePosition =
-                            chapters.indexOfFirst { it.isVolume && it.index == volume.index }
-                        if (volumePosition < 0 || volumePosition > chapterPosition) {
-                            continue
-                        }
-                        val nextVolumePosition = volumes.getOrNull(index + 1)
-                            ?.let { nextVolume ->
-                                chapters.indexOfFirst {
-                                    it.isVolume && it.index == nextVolume.index
-                                }
-                            }
-                            ?.takeIf { it > volumePosition }
-                            ?: chapters.size
-                        if (chapterPosition < nextVolumePosition) {
-                            durVolumeIndex = index
-                            chapterInVolumeIndex = chapters
-                                .subList(volumePosition + 1, chapterPosition + 1)
-                                .count { !it.isVolume } - 1
-                            if (chapterInVolumeIndex < 0) {
-                                chapterInVolumeIndex = 0
-                            }
-                            break
-                        }
-                    }
-                } else {
-                    chapterInVolumeIndex = bookChapter.index
-                }
-                setResult(
-                    RESULT_OK, Intent()
-                        .putExtra("index", bookChapter.index)
-                        .putExtra("chapterChanged", bookChapter.index != durChapterIndex)
-                        .putExtra("durVolumeIndex", durVolumeIndex)
-                        .putExtra("chapterInVolumeIndex", chapterInVolumeIndex)
-                )
-                finish()
-                return@run
-            }
             setResult(
                 RESULT_OK, Intent()
                     .putExtra("index", bookChapter.index)

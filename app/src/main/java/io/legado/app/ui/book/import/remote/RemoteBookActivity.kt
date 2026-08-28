@@ -85,9 +85,6 @@ class RemoteBookActivity : BaseImportBookActivity<RemoteBookViewModel>(),
         binding.recyclerView.adapter = adapter
         binding.selectActionBar.setMainActionText(R.string.add_to_bookshelf)
         binding.selectActionBar.setCallBack(this)
-        if (!LocalConfig.webDavBookHelpVersionIsLast) {
-            showHelp("webDavBookHelp")
-        }
     }
 
     private fun sortCheck(sortKey: RemoteBookSort) {

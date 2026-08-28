@@ -13,7 +13,6 @@ import io.legado.app.data.entities.BookChapter
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.model.AudioPlay
 import io.legado.app.model.ReadBook
-import io.legado.app.model.VideoPlay
 import io.legado.app.utils.toastOnUi
 
 class SourceLoginViewModel(application: Application) : BaseViewModel(application) {
@@ -40,12 +39,6 @@ class SourceLoginViewModel(application: Application) : BaseViewModel(application
                     source = AudioPlay.bookSource
                     book = AudioPlay.book
                     chapter = AudioPlay.durChapter
-                }
-
-                BookType.video -> {
-                    source = VideoPlay.source
-                    book = VideoPlay.book
-                    chapter = VideoPlay.chapter
                 }
 
                 else -> {

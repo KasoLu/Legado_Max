@@ -6,7 +6,6 @@ import io.legado.app.service.BaseReadAloudService
 import io.legado.app.service.CacheBookService
 import io.legado.app.service.DownloadService
 import io.legado.app.service.DownloadStatus
-import io.legado.app.service.WebService
 
 /**
  * 模块运行状态枚举
@@ -41,11 +40,6 @@ object ModuleStatusProvider {
     fun snapshot(): List<ModuleStatusItem> {
         val downloadTasks = DownloadService.getAllTasks()
         return listOf(
-            // Web服务：检查WebService.isRun静态标志
-            ModuleStatusItem(
-                name = "Web 服务",
-                status = if (WebService.isRun) ModuleRunStatus.RUNNING else ModuleRunStatus.IDLE
-            ),
             // 离线缓存：优先检查错误，再检查运行状态
             ModuleStatusItem(
                 name = "离线缓存",
