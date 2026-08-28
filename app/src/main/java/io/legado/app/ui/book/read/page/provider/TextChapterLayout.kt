@@ -1,5 +1,6 @@
 package io.legado.app.ui.book.read.page.provider
 
+import android.graphics.Canvas
 import android.graphics.Paint
 import android.text.Layout
 import android.text.SpannableStringBuilder
@@ -73,6 +74,8 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.getPrefBoolean
 import splitties.init.appCtx
+import io.legado.app.ui.book.read.page.entities.column.LinkAnchorColumn
+import io.legado.app.utils.LinkAnchor
 
 class TextChapterLayout(
     scope: CoroutineScope,
@@ -143,6 +146,31 @@ class TextChapterLayout(
 
     private var durY = 0f
     private var absStartX = paddingLeft
+
+    /** 零宽span：书内锚点令牌(PUA字符)排版零宽，防止字体渲染豆腐块 */
+    private val zeroWidthSpan = object : ReplacementSpan() {
+        override fun getSize(
+            paint: Paint,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            fontMetrics: Paint.FontMetricsInt?
+        ): Int = 0
+
+        override fun draw(
+            canvas: Canvas,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            x: Float,
+            top: Int,
+            y: Int,
+            bottom: Int,
+            paint: Paint
+        ) {
+            // 不绘制：令牌仅用于位置记录
+        }
+    }
     private var floatArray = FloatArray(128)
     private val appendMutex = Mutex()
     private val pendingLazyContents = ArrayList<String>()
@@ -918,6 +946,13 @@ class TextChapterLayout(
                 )
             )
         )
+
+        // 书内锚点令牌(PUA字符)套用零宽span，防止占宽与豆腐块
+        for (i in spanned.indices) {
+            if (LinkAnchor.isToken(spanned[i])) {
+                spanned.setSpan(zeroWidthSpan, i, i + 1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
+            }
+        }
         val width = visibleWidth
         val textPaint = contentPaint
         val textColor = ReadBookConfig.textColor
@@ -966,6 +1001,12 @@ class TextChapterLayout(
                 if (char == "\n") {
                     textLine.isParagraphEnd = true
                     durY += lineHeight * paragraphSpacing / 10f //段距
+                    charIndex++
+                    continue
+                }
+                if (LinkAnchor.isToken(spanned[charIndex])) { //书内锚点令牌：记录零宽列并跳过文本列，防止PUA字形被绘制成豆腐块
+                    val ax = staticLayout.getPrimaryHorizontal(charIndex)
+                    columns.add(LinkAnchorColumn(absStartX + ax, absStartX + ax))
                     charIndex++
                     continue
                 }
@@ -1408,6 +1449,14 @@ class TextChapterLayout(
         val styledText = applyHighlightRules(SpannableStringBuilder(text), isTitle)
         val widthsArray = allocateFloatArray(text.length)
         textPaint.getTextWidthsCompat(text, widthsArray, reviewCharWidth)
+
+        // 书内锚点令牌(PUA字符)置零宽：以 LinkAnchorColumn 记录位置，不占宽度不画豆腐块
+        for (i in text.indices) {
+            if (LinkAnchor.isToken(text[i])) {
+                widthsArray[i] = 0f
+                styledText.setSpan(zeroWidthSpan, i, i + 1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
+            }
+        }
         val layout = if (useZhLayout) {
             val (words, widths) = measureTextSplit(text, widthsArray)
             val (groupedWords, groupedWidths) = groupAlphaNumeric(words, widths)
@@ -1759,6 +1808,9 @@ class TextChapterLayout(
 //                )
 //            }
 
+            char.length == 1 && LinkAnchor.isToken(char[0]) -> //书内锚点令牌：零宽列，不绘制不命中
+                LinkAnchorColumn(absStartX + xStart, absStartX + xStart)
+
             else -> {
                 TextColumn(
                     start = absStartX + xStart,
@@ -1906,7 +1958,7 @@ class TextChapterLayout(
 
     private fun isZeroWidthChar(char: Char): Boolean {
         val code = char.code
-        return code == 8203 || code == 8204 || code == 8205 || code == 8288
+        return code == 8203 || code == 8204 || code == 8205 || code == 8288 || code in LinkAnchor.TOKEN_MIN..LinkAnchor.TOKEN_MAX
     }
 
     private data class CompiledHighlightRule(

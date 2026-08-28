@@ -110,7 +110,9 @@ data class ImageColumn(
     }
 
     override fun isTouch(x: Float): Boolean {
-        return x > start && x < end + 20.dpToPx()
+        // 左右对称扩大命中区域，方便点击内联图片（如段落评论按钮），
+        // 避免点偏一点就被识别成翻页；左侧相邻文字列命中精确，不会抢占
+        return x > start - 20.dpToPx() && x < end + 20.dpToPx()
     }
 
     fun attachAnimatedView(view: ContentTextView) {
