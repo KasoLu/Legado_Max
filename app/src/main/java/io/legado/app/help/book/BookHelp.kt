@@ -30,6 +30,8 @@ import io.legado.app.utils.getFile
 import io.legado.app.utils.isContentScheme
 import io.legado.app.utils.onEachParallel
 import io.legado.app.utils.postEvent
+import io.legado.app.utils.getPrefBoolean
+import io.legado.app.utils.putPrefBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.coroutineScope
@@ -433,6 +435,7 @@ object BookHelp {
      * 读取章节内容
      */
     fun getContent(book: Book, bookChapter: BookChapter): String? {
+        if (book.isEpub) clearStaleEpubLinkCacheOnce(book)
         val file = downloadDir.getFile(
             cacheFolderName,
             book.getFolderName(),
@@ -453,6 +456,21 @@ object BookHelp {
             return string
         }
         return null
+    }
+
+    /**
+     * 支持书内链接后 EPUB 内容缓存需按管线版本失效：旧缓存（剥链/旧管线）在首次 getContent 时清空重解析（图片缓存不受影响）。
+     * 管线逻辑变更时升级 LINK_CACHE_VERSION 即可触发全量重缓存
+     */
+    private const val LINK_CACHE_VERSION = "v2"
+
+    private fun clearStaleEpubLinkCacheOnce(book: Book) {
+        val key = "epubLinkCleared_${LINK_CACHE_VERSION}_" + book.getFolderName()
+        if (appCtx.getPrefBoolean(key, false)) return
+        File(downloadDir, "$cacheFolderName/" + book.getFolderName())
+            .listFiles { f -> f.isFile }
+            ?.forEach { it.delete() }
+        appCtx.putPrefBoolean(key, true)
     }
 
     /**

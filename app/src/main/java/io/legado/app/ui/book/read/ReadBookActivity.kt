@@ -1475,6 +1475,7 @@ class ReadBookActivity : BaseReadBookActivity(),
         }
     }
 
+    override fun onInBookLink(ref: String) = ReadBook.jumpInBook(ref)
 
     /**
      * 朗读按钮

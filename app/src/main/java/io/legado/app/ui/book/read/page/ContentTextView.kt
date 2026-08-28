@@ -26,6 +26,7 @@ import io.legado.app.ui.book.read.page.entities.column.TextColumn
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.ui.widget.dialog.PhotoDialog
+import io.legado.app.utils.LinkAnchor
 import io.legado.app.utils.activity
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getCompatColor
@@ -342,9 +343,13 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     }
                 }
                 is TextHtmlColumn -> {
-                    column.linkUrl?.let {
-                        activity?.startActivity<OpenUrlConfirmActivity> {
-                            putExtra("uri", it)
+                    column.linkUrl?.let { url ->
+                        if (url.startsWith(LinkAnchor.IN_BOOK_SCHEME)) { //书内链接：跳转到书内目标位置
+                            callBack.onInBookLink(url.removePrefix(LinkAnchor.IN_BOOK_SCHEME))
+                        } else {
+                            activity?.startActivity<OpenUrlConfirmActivity> {
+                                putExtra("uri", url)
+                            }
                         }
                         handled = true
                     }
@@ -819,5 +824,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         fun onLongScreenshotTouchEvent(event: MotionEvent): Boolean
         fun oldClickImg(src: String): Boolean
         fun clickImg(click: String, src: String)
+        fun onInBookLink(ref: String)
     }
 }

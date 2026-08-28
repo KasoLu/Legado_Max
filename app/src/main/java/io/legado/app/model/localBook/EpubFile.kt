@@ -11,6 +11,7 @@ import io.legado.app.data.entities.BookChapter
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.config.AppConfig
 import io.legado.app.utils.FileUtils
+import io.legado.app.utils.LinkAnchor
 import io.legado.app.utils.HtmlFormatter
 import io.legado.app.utils.encodeURI
 import io.legado.app.utils.isXml
@@ -178,7 +179,19 @@ class EpubFile(var book: Book) {
             elements.select("rp, rt").remove()
         }
         val html = elements.outerHtml()
-        return HtmlFormatter.formatKeepImg(html)
+        return if (AppConfig.adaptSpecialStyle) wrapLinkLines(HtmlFormatter.formatKeepImgAndLink(html)) else HtmlFormatter.formatKeepImg(html)
+    }
+
+    /** 含 <a> 标签的行判定：此类行需包裹 <usehtml> 以走 html 排版分支 */
+    private val linkLineRegex = Regex("<a\\s[^>]*>|<a>|</a>")
+
+    /**
+     * 将含 <a> 的行包裹为 <usehtml>…</usehtml>，使排版引擎 html 分支支持链接高亮与点击
+     */
+    private fun wrapLinkLines(content: String): String {
+        return content.split('\n').joinToString("\n") { line ->
+            if (linkLineRegex.containsMatchIn(line)) "<usehtml>$line</usehtml>" else line
+        }
     }
 
     private fun getBody(res: Resource, startFragmentId: String?, endFragmentId: String?): Element {
@@ -247,6 +260,32 @@ class EpubFile(var book: Book) {
             val href = res.href.encodeURI()
             val resolvedHref = URLDecoder.decode(URI(href).resolve(src).toString(), "UTF-8")
             it.attr("src", resolvedHref)
+        }
+        //书内链接：规范化 href（书内→epubref:规范引用；外部→保持原样；空/畸形→unwrap 按纯文本处理）
+        bodyElement.select("a[href]").forEach {
+            val resolved = LinkAnchor.resolveHref(res.href, it.attr("href"))
+            if (resolved == null) {
+                it.unwrap()
+            } else {
+                //仅重写 href，保留 id/name，锚点目标的令牌才能在后续步骤注入
+                it.attr("href", resolved)
+            }
+        }
+        //锚点目标：向带 id 的元素注入 PUA 令牌字符，排版后可在文本中定位目标位置
+        bodyElement.select("[id]").forEach { el ->
+            val id = el.id()
+            if (id.isBlank()) return@forEach
+            val key = LinkAnchor.canonicalRef(res.href, id) ?: return@forEach
+            val token = LinkAnchor.tokenChar(key).toString()
+            if (el.text().isEmpty()) el.appendText(token) else el.prependText(token)
+        }
+        //兼容旧式 <a name="..."> 锚点（无 id 时）
+        bodyElement.select("a[name]").forEach { el ->
+            val name = el.attr("name")
+            if (name.isBlank() || el.id().isNotBlank()) return@forEach
+            val key = LinkAnchor.canonicalRef(res.href, name) ?: return@forEach
+            val token = LinkAnchor.tokenChar(key).toString()
+            if (el.text().isEmpty()) el.appendText(token) else el.prependText(token)
         }
         return bodyElement
     }

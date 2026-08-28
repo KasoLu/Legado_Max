@@ -36,6 +36,7 @@ import io.legado.app.service.CacheBookService
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.LayoutProgressListener
+import io.legado.app.utils.LinkAnchor
 import io.legado.app.utils.postEvent
 import io.legado.app.utils.stackTraceStr
 import io.legado.app.utils.toastOnUi
@@ -58,6 +59,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
+import java.net.URLDecoder
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 import kotlin.math.min
@@ -552,6 +554,121 @@ object ReadBook : CoroutineScope by MainScope() {
                 success?.invoke()
             }
         }
+    }
+
+    /**
+     * 书内链接跳转（EPUB 脚注/参考文献）：ref 为规范化资源路径+fragment，与排版令牌一致
+     */
+    fun jumpInBook(ref: String) {
+        Coroutine.async {
+            val book = book ?: return@async
+            val token = LinkAnchor.tokenChar(ref)
+            val refPath = ref.substringBefore('#')
+            val all = appDb.bookChapterDao.getChapterList(book.bookUrl)
+            AppLog.put("[InBookLink] ref=$ref token=U+${token.code.toString(16).uppercase()} refPath=$refPath curChapter=$durChapterIndex 全书=${all.size}章 当前章=${all.getOrNull(durChapterIndex)?.title}|${all.getOrNull(durChapterIndex)?.url}")
+            //优先在已排版的相邻章（当前/后/前）中找令牌：用户正在读的就是令牌所在章（同文件脚注↔参考文献），
+            //命中即同章滚动，规避"正文文件非章节→路径匹配落空→全书原文兜底抓到更早章节"的乱跳
+            for (offset in listOf(0, 1, -1)) {
+                val tc = textChapter(offset) ?: continue
+                val pos = findPosInChapter(tc, token)
+                AppLog.put("[InBookLink] 邻章查 offset=$offset cur=(idx${tc.chapter.index})${tc.chapter.title} 排版长=${tc.getContent().length} findPos=$pos")
+                if (pos != null) {
+                    AppLog.put("[InBookLink] 邻章命中 offset=$offset -> openChapter(idx${tc.chapter.index}, $pos)")
+                    openChapter(tc.chapter.index, pos)
+                    return@async
+                }
+            }
+            //路径匹配：容忍前导斜杠/file://前缀/大小写/路径前缀差异
+            var candidates = all.filter { inBookPathMatches(it.url, refPath) }.sortedBy { it.index }
+            AppLog.put("[InBookLink] 路径匹配候选数=${candidates.size} ${candidates.joinToString { "(idx${it.index})${it.title}:${it.url}" }}")
+            if (candidates.isEmpty()) {
+                //兜底：路径匹配失败时，在全书章节原文中检索令牌（覆盖目录命名不一致等情况）
+                val hit = all.firstOrNull { rawContentContainsToken(book, it, token) }
+                if (hit == null) {
+                    appCtx.toastOnUi("未找到目标章节，目标可能不在本书目录中")
+                    return@async
+                }
+                candidates = listOf(hit)
+            }
+            //优先搜已排版章节（当前章/相邻章），免去重排
+            for (ch in candidates) {
+                val tc = textChapter(ch.index - durChapterIndex) ?: continue
+                if (tc.chapter.index != ch.index) continue
+                val p0 = findPosInChapter(tc, token)
+                AppLog.put("[InBookLink] 已排版查 候选(idx${ch.index})${ch.title} offset=${ch.index - durChapterIndex} 排版长=${tc.getContent().length} findPos=$p0")
+                if (p0 != null) {
+                    openChapter(ch.index, p0)
+                    return@async
+                }
+            }
+            //未排版章节：先用原文锁定目标章，打开后加载完成再精确定位令牌
+            val target = candidates.firstOrNull { rawContentContainsToken(book, it, token) } ?: candidates.first()
+            AppLog.put("[InBookLink] 远章兜底 target=(idx${target.index})${target.title}:${target.url}")
+            openChapter(target.index, 0) {
+                val tc = curTextChapter ?: return@openChapter
+                if (tc.chapter.index != target.index) return@openChapter
+                val pos = findPosInChapter(tc, token)
+                AppLog.put("[InBookLink] 远章重排后 cur=(idx${tc.chapter.index})${tc.chapter.title} 排版长=${tc.getContent().length} findPos=$pos")
+                if (pos != null && pos > 0) {
+                    ReadBook.durChapterPos = pos
+                    saveRead()
+                    callBack?.upContent(0, true)
+                } else {
+                    appCtx.toastOnUi("未找到目标位置，已定位到章节开头")
+                }
+            }
+        }
+    }
+
+    /**
+     * 书内资源路径匹配：去 fragment/file://前缀/前导斜杠并百分号反转义，忽略大小写，容忍路径前缀差异
+     */
+    private fun inBookPathMatches(url: String, refPath: String): Boolean {
+        val u = inBookRawPath(url)
+        val r = inBookRawPath(refPath)
+        if (u.isEmpty() || r.isEmpty()) return false
+        val lu = u.lowercase()
+        val lr = r.lowercase()
+        return lu == lr || lu.endsWith("/$lr") || lr.endsWith("/$lu")
+    }
+
+    /**
+     * 书内路径归一为原始形式：去 fragment、file:// 前缀、前导斜杠，并百分号反转义
+     */
+    private fun inBookRawPath(p: String): String {
+        val s = p.substringBefore('#')
+            .removePrefix("file://")
+            .removePrefix("file:/")
+            .removePrefix("/")
+        return if (s.contains("%")) {
+            runCatching { URLDecoder.decode(s, "UTF-8") }.getOrDefault(s)
+        } else {
+            s
+        }
+    }
+
+    /**
+     * 章节原文（格式化后、排版前）是否包含锚点令牌
+     */
+    private fun rawContentContainsToken(book: Book, chapter: BookChapter, token: Char): Boolean {
+        val content = runCatching { BookHelp.getContent(book, chapter) }.getOrNull() ?: return false
+        return content.contains(token)
+    }
+
+    /**
+     * 查找排版令牌在章节排版文本中的位置（章节内偏移），未找到返回 null
+     */
+    private fun findPosInChapter(chapter: TextChapter, token: Char): Int? {
+        val content = chapter.getContent()
+        val idx = content.indexOf(token)
+        if (idx < 0) return null
+        var offset = 0
+        for (page in chapter.pages) {
+            val len = page.text.length
+            if (idx < offset + len) return page.chapterPosition + (idx - offset)
+            offset += len
+        }
+        return null
     }
 
     /**

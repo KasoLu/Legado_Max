@@ -12,6 +12,7 @@ object HtmlFormatter {
     private val wrapHtmlRegex = "</?(?:div|p|br|hr|h\\d|article|dd|dl)[^>]*>".toRegex()
     private val commentRegex = "<!--[^>]*-->".toRegex() //注释
     private val notImgHtmlRegex = "</?(?!img)[a-zA-Z]+(?=[ >])[^<>]*>".toRegex()
+    private val notImgLinkHtmlRegex = "</?(?!img|a)[a-zA-Z]+(?=[ >])[^<>]*>".toRegex()
     private val otherHtmlRegex = "</?[a-zA-Z]+(?=[ >])[^<>]*>".toRegex()
     private val formatImagePattern = Pattern.compile(
         "<img[^>]*\\ssrc\\s*=\\s*['\"]([^'\"{>]*\\{(?:[^{}]|\\{[^}>]+\\})+\\})['\"][^>]*>|<img[^>]*\\sdata-(?:src|original|srcset)\\s*=\\s*['\"]([^'\">]+)['\"][^>]*>|<img[^>]*\\ssrc\\s*=\\s*\"([^\">]+)\"[^>]*>|<img[^>]*\\s(?:data-[^=>]*|src)=\\s*['\"]([^'\">]*)['\"][^>]*>",
@@ -36,16 +37,26 @@ object HtmlFormatter {
 
     fun formatKeepImg(html: String?, redirectUrl: URL? = null): String {
         html ?: return ""
-        val keepImgHtml = format(html, notImgHtmlRegex)
+        return rewriteImages(format(html, notImgHtmlRegex), redirectUrl)
+    }
 
+    /**
+     * 保留 img 与 a 标签（EPUB 书内链接用）
+     */
+    fun formatKeepImgAndLink(html: String?, redirectUrl: URL? = null): String {
+        html ?: return ""
+        return rewriteImages(format(html, notImgLinkHtmlRegex), redirectUrl)
+    }
+
+    private fun rewriteImages(html: String, redirectUrl: URL? = null): String {
         //正则的“|”处于顶端而不处于（）中时，具有类似||的熔断效果，故以此机制简化原来的代码
-        val matcher = formatImagePattern.matcher(keepImgHtml)
+        val matcher = formatImagePattern.matcher(html)
         var appendPos = 0
         val sb = StringBuilder()
         while (matcher.find()) {
             var param = ""
             sb.append(
-                keepImgHtml.substring(appendPos, matcher.start()), "<img src=\"${
+                html.substring(appendPos, matcher.start()), "<img src=\"${
                     NetworkUtils.getAbsoluteURL(
                         redirectUrl,
                         matcher.group(1)?.let {
@@ -60,10 +71,10 @@ object HtmlFormatter {
             )
             appendPos = matcher.end()
         }
-        if (appendPos < keepImgHtml.length) sb.append(
-            keepImgHtml.substring(
+        if (appendPos < html.length) sb.append(
+            html.substring(
                 appendPos,
-                keepImgHtml.length
+                html.length
             )
         )
         return sb.toString()
