@@ -883,7 +883,8 @@
 <string name="web_view_dialog_height_follow">Follow source</string>
 <string name="web_view_dialog_height_half">1/2 screen</string>
 <string name="web_view_dialog_height_two_thirds">2/3 screen</string>
-<string name="web_view_dialog_height_four_fifths">4/5 screen</string>
+    <string name="web_view_dialog_height_four_fifths">4/5 screen</string>
+    <string name="web_view_dialog_height_full">Full screen</string>
     <string name="auto_page_speed">Auto scroll speed</string>
     <string name="sort_by_url">Sort by URL</string>
     <string name="backup_summary">Backup the local and WebDav simultaneously</string>

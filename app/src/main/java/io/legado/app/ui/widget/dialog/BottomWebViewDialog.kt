@@ -370,26 +370,39 @@ class BottomWebViewDialog() : BottomSheetDialogFragment(R.layout.dialog_web_view
         }
 
         // 本地用户设置：覆盖书源下发的弹窗高度（值为 0 时跟随书源）
-        // 高度按窗口全屏高度 × 比例计算，内容完全贴底、不做底部避让。
-        // 底部系统栏由系统级方案处理（immersive 隐藏时 insets 归零、无遮挡物）；
-        // 弹窗最高 4/5，顶部不会进入状态栏区域，无需顶部避让。
+        // 高度按屏幕全屏高度 × 比例计算，内容完全贴底、不做底部避让。
+        // 在入场动画开始前同步设置高度，动画全程即为目标高度，避免动画后跳变；
+        // 底部系统栏由系统级方案处理（immersive 隐藏时 insets 归零、无遮挡物）。
         context?.getPrefString(PreferKey.webViewDialogHeight)?.toFloatOrNull()?.let { ratio ->
             if (ratio > 0f && ratio <= 1f) {
-                dialog?.window?.decorView?.let { decorView ->
-                    decorView.post {
-                        val height = (decorView.height * ratio).toInt()
-                        if (height > 0) {
-                            bottomSheet?.let { sheet ->
-                                val params = sheet.layoutParams
-                                params.height = height
-                                sheet.layoutParams = params
-                                // 关闭系统自动的系统栏 padding，内容完全贴底
-                                sheet.setFitsSystemWindows(false)
-                                sheet.setPadding(0, 0, 0, 0)
-                                behavior?.peekHeight = height
-                                behavior?.maxHeight = height
-                            }
-                        }
+                val window = dialog?.window ?: return@let
+                // dialog 窗口为全屏（MATCH_PARENT + FLAG_LAYOUT_NO_LIMITS），高度基数为屏幕全屏高度；
+                // 不依赖 decorView.height（布局前为 0），避免延迟到 post 导致动画期间仍为旧高度
+                val screenHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    runCatching { window.windowManager.currentWindowMetrics.bounds.height() }
+                        .getOrNull()
+                        ?: window.windowManager.defaultDisplay?.let { display ->
+                            val metrics = android.util.DisplayMetrics()
+                            display.getRealMetrics(metrics)
+                            metrics.heightPixels
+                        } ?: 0
+                } else {
+                    val metrics = android.util.DisplayMetrics()
+                    window.windowManager.defaultDisplay.getRealMetrics(metrics)
+                    metrics.heightPixels
+                }
+                if (screenHeight <= 0) return@let
+                val height = (screenHeight * ratio).toInt()
+                if (height > 0) {
+                    bottomSheet?.let { sheet ->
+                        val params = sheet.layoutParams
+                        params.height = height
+                        sheet.layoutParams = params
+                        // 关闭系统自动的系统栏 padding，内容完全贴底
+                        sheet.setFitsSystemWindows(false)
+                        sheet.setPadding(0, 0, 0, 0)
+                        behavior?.peekHeight = height
+                        behavior?.maxHeight = height
                     }
                 }
             }
@@ -580,6 +593,9 @@ class BottomWebViewDialog() : BottomSheetDialogFragment(R.layout.dialog_web_view
         headerMap: HashMap<String, String>,
         bookType: Int
     ) {
+        // 忽略系统栏 insets：WebView 内容按容器全尺寸渲染与滚动，
+        // 避免其在全面屏/edge-to-edge 窗口下自动避让状态栏与手势条导致内容整体偏移
+        currentWebView.setOnApplyWindowInsetsListener { _, insets -> insets }
         currentWebView.webChromeClient = CustomWebChromeClient()
         currentWebView.addJavascriptInterface(JSInterface(this), nameBasic)
         currentWebView.webViewClient = CustomWebViewClient()
