@@ -73,7 +73,7 @@ class MainViewModel(application: Application) : BaseViewModel(application) {
     }
 
     private fun logUpdate(message: String, throwable: Throwable? = null, verbose: Boolean = false) {
-        if (!verbose || AppConfig.verboseUpdateLog) {
+        if (verbose) {
             if (throwable != null) {
                 AppLog.putSource(message, throwable, SourceSubCategory.UPDATE)
             } else {

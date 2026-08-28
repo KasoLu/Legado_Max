@@ -28,16 +28,25 @@ object DispatchersMonitor {
         }.asCoroutineDispatcher()
     }
 
-    private val scope = CoroutineScope(dispatcher)
+    private var started = false
+
+    private val scope by lazy { CoroutineScope(dispatcher) }
 
     fun init() {
-        scope.coroutineContext.cancelChildren()
-        if (!AppConfig.recordLog) {
-            return
+        val on = AppConfig.debugMode || AppConfig.recordLog
+        if (on) {
+            if (!started) {
+                started = true
+                monitor(IO)
+                monitor(Default)
+                monitor(Main)
+            }
+        } else {
+            if (started) {
+                started = false
+                scope.coroutineContext.cancelChildren()
+            }
         }
-        monitor(IO)
-        monitor(Default)
-        monitor(Main)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

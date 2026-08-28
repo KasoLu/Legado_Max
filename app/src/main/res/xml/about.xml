@@ -3,9 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <io.legado.app.lib.prefs.Preference
-        android:key="contributors"
-        android:summary="@string/contributors_summary_sigma"
-        android:title="@string/contributors"
+        android:key="check_update"
+        android:title="@string/check_update"
+        app:allowDividerAbove="false"
+        app:allowDividerBelow="false"
         app:iconSpaceReserved="false" />
 
     <io.legado.app.lib.prefs.Preference
@@ -15,11 +16,27 @@
         app:allowDividerBelow="false"
         app:iconSpaceReserved="false" />
 
-    <io.legado.app.lib.prefs.Preference
-        android:key="check_update"
-        android:title="@string/check_update"
+    <io.legado.app.lib.prefs.NameListPreference
+        android:defaultValue="default_version"
+        android:key="updateToVariant"
+        android:summary="@string/update_to_variant_summary"
+        android:title="@string/update_to_variant_title"
         app:allowDividerAbove="false"
         app:allowDividerBelow="false"
+        app:entries="@array/default_app_variant"
+        app:entryValues="@array/default_app_variant_value" />
+
+    <io.legado.app.lib.prefs.SwitchPreference
+        android:defaultValue="true"
+        android:key="autoUpdateVariant"
+        android:summary="@string/auto_update_summary"
+        android:title="@string/auto_update"
+        app:iconSpaceReserved="false" />
+
+    <io.legado.app.lib.prefs.Preference
+        android:key="contributors"
+        android:summary="@string/contributors_summary_sigma"
+        android:title="@string/contributors"
         app:iconSpaceReserved="false" />
 
     <io.legado.app.lib.prefs.PreferenceCategory
@@ -28,6 +45,16 @@
         app:allowDividerBelow="false"
         app:iconSpaceReserved="false"
         app:layout="@layout/view_preference_category">
+
+        <io.legado.app.lib.prefs.Preference
+            android:key="privacyPolicy"
+            android:title="@string/privacy_policy"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.Preference
+            android:key="license"
+            android:title="@string/license"
+            app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.Preference
             android:key="crashLog"
@@ -42,16 +69,6 @@
         <io.legado.app.lib.prefs.Preference
             android:key="createHeapDump"
             android:title="@string/create_heap_dump"
-            app:iconSpaceReserved="false" />
-
-        <io.legado.app.lib.prefs.Preference
-            android:key="privacyPolicy"
-            android:title="@string/privacy_policy"
-            app:iconSpaceReserved="false" />
-
-        <io.legado.app.lib.prefs.Preference
-            android:key="license"
-            android:title="@string/license"
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.Preference

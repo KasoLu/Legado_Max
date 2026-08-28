@@ -83,9 +83,6 @@ class CrashHandler(val context: Context) : Thread.UncaughtExceptionHandler {
         if (AppConfig.copyCrashLog) {
             copyCrashLogToClipboard(ex)
         }
-        if ((ex is OutOfMemoryError || ex.cause is OutOfMemoryError) && AppConfig.recordHeapDump) {
-            doHeapDump()
-        }
         context.longToastOnUiLegacy(ex.stackTraceStr)
         Thread.sleep(3000)
     }

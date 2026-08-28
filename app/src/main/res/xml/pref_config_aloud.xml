@@ -35,6 +35,20 @@
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="true"
+            android:key="mediaButtonOnExit"
+            android:summary="@string/media_button_on_exit_summary"
+            android:title="@string/media_button_on_exit_title"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="readAloudByMediaButton"
+            android:summary="@string/read_aloud_by_media_button_summary"
+            android:title="@string/read_aloud_by_media_button_title"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
             android:defaultValue="false"
             android:title="@string/read_aloud_by_page"
             android:summary="@string/read_aloud_by_page_summary"

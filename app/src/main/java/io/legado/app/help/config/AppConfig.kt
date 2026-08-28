@@ -396,12 +396,6 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             }
         }
 
-    var verboseUpdateLog: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.verboseUpdateLog, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.verboseUpdateLog, value)
-        }
-
     var remoteServerId: Long
         get() = appCtx.getPrefLong(PreferKey.remoteServerId)
         set(value) {
@@ -680,8 +674,6 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     val webDavDir get() = appCtx.getPrefString(PreferKey.webDavDir, "legado")
 
     val webDavDeviceName get() = appCtx.getPrefString(PreferKey.webDavDeviceName, Build.MODEL)
-
-    val recordHeapDump get() = appCtx.getPrefBoolean(PreferKey.recordHeapDump, false)
 
     val loadCoverOnlyWifi get() = appCtx.getPrefBoolean(PreferKey.loadCoverOnlyWifi, false)
 

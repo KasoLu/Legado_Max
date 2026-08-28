@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <io.legado.app.lib.prefs.PreferenceCategory
+        android:title="@string/advanced_network"
+        app:allowDividerAbove="false"
+        app:allowDividerBelow="false"
+        app:iconSpaceReserved="false"
+        app:layout="@layout/view_preference_category">
+
+        <!-- T2 书源检查（最常用） -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="checkSource"
+            android:title="@string/check_source_config"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 使用 Cronet -->
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="Cronet"
+            android:summary="@string/pref_cronet_summary"
+            android:title="@string/cronet"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 忽略 SSL -->
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="unsafeSsl"
+            android:summary="@string/unsafe_ssl_summary"
+            android:title="@string/unsafe_ssl_title"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 字体抗锯齿 -->
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="antiAlias"
+            android:summary="@string/pref_anti_alias_summary"
+            android:title="@string/anti_alias"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 图片缓存 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="bitmapCacheSize"
+            android:summary="@string/bitmap_cache_size_summary"
+            android:title="@string/bitmap_cache_size"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 图片保留数量 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="imageRetainNum"
+            android:summary="@string/image_retain_number_summary"
+            android:title="@string/image_retain_number"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 并发线程数 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="threadCount"
+            android:title="@string/threads_num_title"
+            app:iconSpaceReserved="false" />
+
+        <!-- T3 预下载章节 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="preDownloadNum"
+            android:summary="@string/pre_download_s"
+            android:title="@string/pre_download"
+            app:iconSpaceReserved="false" />
+
+        <!-- T4 自定义 Hosts -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="customHosts"
+            android:summary="@string/custom_hosts_summary"
+            android:title="@string/custom_hosts"
+            app:iconSpaceReserved="false" />
+
+        <!-- T4 书源编辑最大行数 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="sourceEditMaxLine"
+            android:title="@string/source_edit_text_max_line"
+            app:iconSpaceReserved="false" />
+
+        <!-- T4 向后预下载 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="backwardPreDownloadNum"
+            android:summary="@string/backward_pre_download_s"
+            android:title="@string/backward_pre_download"
+            app:iconSpaceReserved="false" />
+
+        <!-- T4 直链上传规则 -->
+        <io.legado.app.lib.prefs.Preference
+            android:key="uploadRule"
+            android:summary="@string/direct_link_upload_rule_summary"
+            android:title="@string/direct_link_upload_rule"
+            app:iconSpaceReserved="false" />
+
+    </io.legado.app.lib.prefs.PreferenceCategory>
+
+    <io.legado.app.lib.prefs.PreferenceCategory
+        android:title="@string/log_and_diagnostic"
+        app:allowDividerAbove="false"
+        app:allowDividerBelow="false"
+        app:iconSpaceReserved="false"
+        app:layout="@layout/view_preference_category">
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="recordLog"
+            android:summary="@string/record_debug_log"
+            android:title="@string/record_log"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="true"
+            android:key="copyCrashLog"
+            android:summary="@string/copy_crash_log_summary"
+            android:title="@string/copy_crash_log_title"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="debugLogFloatingBall"
+            android:summary="@string/debug_log_floating_ball_summary"
+            android:title="@string/debug_log_floating_ball"
+            app:iconSpaceReserved="false" />
+
+    </io.legado.app.lib.prefs.PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

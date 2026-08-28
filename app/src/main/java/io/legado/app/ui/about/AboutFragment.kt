@@ -152,10 +152,6 @@ class AboutFragment : PreferenceFragmentCompat() {
                 appCtx.toastOnUi("未设置备份目录")
                 return@async
             }
-            if (!AppConfig.recordHeapDump) {
-                appCtx.toastOnUi("未开启堆转储记录，请去其他设置里打开记录堆转储")
-                delay(3000)
-            }
             appCtx.toastOnUi("开始创建堆转储")
             System.gc()
             CrashHandler.doHeapDump(true)

@@ -4,34 +4,15 @@
     android:divider="@color/transparent"
     app:allowDividerBelow="false">
 
+    <!-- T2 清理缓存（最常用） -->
     <io.legado.app.lib.prefs.Preference
-        android:icon="@drawable/ic_link"
-        android:key="urlRecord"
-        android:summary="@string/record_url_switch"
-        android:title="@string/url_record"
+        android:icon="@drawable/ic_clear"
+        android:key="cleanCache"
+        android:summary="@string/clear_cache_summary"
+        android:title="@string/clear_cache"
         app:iconSpaceReserved="false" />
 
-    <io.legado.app.lib.prefs.Preference
-        android:icon="@drawable/ic_storage_black_24dp"
-        android:key="storageManage"
-        android:summary="@string/storage_manage_summary"
-        android:title="@string/storage_manage"
-        app:iconSpaceReserved="false" />
-
-    <io.legado.app.lib.prefs.Preference
-        android:icon="@drawable/ic_download"
-        android:key="downloadManage"
-        android:summary="@string/download_manage_summary"
-        android:title="@string/download_manage"
-        app:iconSpaceReserved="false" />
-
-    <io.legado.app.lib.prefs.Preference
-        android:icon="@drawable/ic_settings"
-        android:key="moduleStatus"
-        android:summary="@string/module_status_summary"
-        android:title="@string/module_status"
-        app:iconSpaceReserved="false" />
-
+    <!-- T3 书源回收站 -->
     <io.legado.app.lib.prefs.Preference
         android:icon="@drawable/ic_outline_delete"
         android:key="sourceRecycleBin"
@@ -39,11 +20,60 @@
         android:title="@string/source_recycle_bin"
         app:iconSpaceReserved="false" />
 
+    <!-- T3 下载管理 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_download"
+        android:key="downloadManage"
+        android:summary="@string/download_manage_summary"
+        android:title="@string/download_manage"
+        app:iconSpaceReserved="false" />
+
+    <!-- T3 存储管理 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_storage_black_24dp"
+        android:key="storageManage"
+        android:summary="@string/storage_manage_summary"
+        android:title="@string/storage_manage"
+        app:iconSpaceReserved="false" />
+
+    <!-- T3 清理 WebView 数据 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_web"
+        android:key="clearWebViewData"
+        android:summary="@string/clear_webview_data_summary"
+        android:title="@string/clear_webview_data"
+        app:iconSpaceReserved="false" />
+
+    <!-- T4 URL 记录 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_link"
+        android:key="urlRecord"
+        android:summary="@string/record_url_switch"
+        android:title="@string/url_record"
+        app:iconSpaceReserved="false" />
+
+    <!-- T4 模块状态 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_settings"
+        android:key="moduleStatus"
+        android:summary="@string/module_status_summary"
+        android:title="@string/module_status"
+        app:iconSpaceReserved="false" />
+
+    <!-- T4 文件管理 -->
     <io.legado.app.lib.prefs.Preference
         android:icon="@drawable/ic_folder_outline"
         android:key="fileManage"
         android:summary="@string/file_manage_summary"
         android:title="@string/file_manage"
+        app:iconSpaceReserved="false" />
+
+    <!-- T4 收缩数据库 -->
+    <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_storage_black_24dp"
+        android:key="shrinkDatabase"
+        android:summary="@string/shrink_database_summary"
+        android:title="@string/shrink_database"
         app:iconSpaceReserved="false" />
 
 </androidx.preference.PreferenceScreen>

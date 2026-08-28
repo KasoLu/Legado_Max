@@ -8,5 +8,7 @@ object ConfigTag {
     const val BACKUP_CONFIG = "backupConfig"
     const val COVER_CONFIG = "coverConfig"
     const val WELCOME_CONFIG = "welcomeConfig"
+    const val WEB_SERVICE_CONFIG = "webServiceConfig"
+    const val ADVANCED_CONFIG = "advancedConfig"
 
 }

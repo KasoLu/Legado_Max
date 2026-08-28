@@ -23,6 +23,8 @@ class ConfigActivity : VMBaseActivity<ActivityConfigBinding, ConfigViewModel>() 
             ConfigTag.BACKUP_CONFIG -> replaceFragment<BackupConfigFragment>(configTag)
             ConfigTag.COVER_CONFIG -> replaceFragment<CoverConfigFragment>(configTag)
             ConfigTag.WELCOME_CONFIG -> replaceFragment<WelcomeConfigFragment>(configTag)
+            ConfigTag.WEB_SERVICE_CONFIG -> replaceFragment<WebServiceConfigFragment>(configTag)
+            ConfigTag.ADVANCED_CONFIG -> replaceFragment<AdvancedConfigFragment>(configTag)
             else -> finish()
         }
     }

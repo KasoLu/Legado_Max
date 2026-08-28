@@ -64,7 +64,6 @@ object PreferKey {
     const val restoreShowSelector = "restoreShowSelector"
     const val threadCount = "threadCount"
     const val cacheConcurrentRate = "cacheConcurrentRate"
-    const val verboseUpdateLog = "verboseUpdateLog" // 详细更新日志开关
     const val webPort = "webPort"
     const val keepLight = "keep_light"
     const val webService = "webService"
@@ -198,7 +197,6 @@ object PreferKey {
     const val volumeKeyPage = "volumeKeyPage"
     const val volumeKeyPageOnPlay = "volumeKeyPageOnPlay"
     const val mouseWheelPage = "mouseWheelPage"
-    const val recordHeapDump = "recordHeapDump"
     const val optimizeRender = "optimizeRender"
     const val updateToVariant = "updateToVariant"
     const val streamReadAloudAudio = "streamReadAloudAudio"

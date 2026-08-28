@@ -70,6 +70,10 @@
     <string name="book_source_manage">书源管理</string>
     <string name="book_source_manage_desc">新建、导入、编辑或管理书源</string>
     <string name="setting">设置</string>
+    <string name="source_rule">书源与规则</string>
+    <string name="pref_reading">阅读偏好</string>
+    <string name="pref_data">数据与记录</string>
+    <string name="pref_advanced">高级与扩展</string>
     <string name="theme_setting">主题设置</string>
     <string name="theme_setting_s">与界面/颜色相关的一些设置</string>
     <string name="other_setting">其它设置</string>
@@ -100,6 +104,7 @@
     <string name="web_service_auth_summary">要求API请求携带Token认证，在公共网络下建议开启</string>
     <string name="web_service_token_title">Web服务Token</string>
     <string name="web_service_token_summary">设置Web服务认证令牌</string>
+    <string name="web_service_setting">Web 服务设置</string>
     <string name="web_edit_source">Web 编辑书源</string>
     <string name="offline_cache">离线缓存</string>
     <string name="offline_cache_t">离线缓存</string>
@@ -722,6 +727,9 @@
     <string name="aloud_config">朗读设置</string>
     <string name="main_activity">主界面</string>
     <string name="enhanced_features">增强功能</string>
+    <string name="advanced_setting">高级设置</string>
+    <string name="advanced_network">性能与网络</string>
+    <string name="log_and_diagnostic">日志与诊断</string>
     <string name="selectText">长按选择文本</string>
     <string name="header">页眉</string>
     <string name="header_font_size">字体大小</string>

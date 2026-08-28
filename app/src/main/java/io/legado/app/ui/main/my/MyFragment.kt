@@ -184,6 +184,12 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
                 "readRecord" -> startActivity<ReadRecordActivity>()
                 "storageManage" -> startActivity<StorageManageActivity>()
                 "downloadManage" -> startActivity<DownloadManageActivity>()
+                "web_service_setting" -> startActivity<ConfigActivity> {
+                    putExtra("configTag", ConfigTag.WEB_SERVICE_CONFIG)
+                }
+                "advancedConfig" -> startActivity<ConfigActivity> {
+                    putExtra("configTag", ConfigTag.ADVANCED_CONFIG)
+                }
                 "about" -> startActivity<AboutActivity>()
                 "exit" -> activity?.finish()
             }
