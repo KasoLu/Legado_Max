@@ -2,7 +2,7 @@
 
 ## Identity
 
-阅读Max — An Android e-book reader forked from Legado. Supports custom book sources (Jsoup selectors + Rhino JS rules), RSS, local TXT/EPUB, and an embedded HTTP/WS server for remote control.
+阅读Max — An Android e-book reader forked from Legado. Supports custom book sources (Jsoup selectors + Rhino JS rules), RSS, and local TXT/EPUB.
 
 ## Build system
 
@@ -38,9 +38,7 @@ app/src/main/java/io/legado/app/
 ├── data/               # Room DB (AppDatabase v96), DAOs, entities, repositories
 ├── model/              # Domain logic: ReadBook, WebBook, analyzeRule (Jsoup/XPath/JSON/Regex), AudioPlay
 ├── help/               # Config, HTTP (OkHttp + Cronet), coroutine utilities, Rhino bridge
-├── web/                # NanoHTTPD + WebSocket server (HttpServer.kt, WebSocketServer.kt)
-├── api/                # REST controllers (used by the web frontend)
-├── service/            # Background services (AudioPlay, WebService, Download, TTS)
+├── service/            # Background services (AudioPlay, Download, CacheBook, TTS)
 ├── ui/                 # Activities & Fragments grouped by feature
 └── utils/              # ~100+ Kotlin extensions
 ```
@@ -48,7 +46,6 @@ app/src/main/java/io/legado/app/
 3 library modules under `modules/`:
 - `:modules:rhino` — Mozilla Rhino JS engine fork (package `com.script`). Evaluates user-defined book source rules.
 - `:modules:book` — EPUB/UMD/MOBI parsing fork (package `me.ag2s.epublib`).
-- `:modules:web` — Vue 3 frontend for the embedded HTTP server (see below).
 
 ## Key patterns
 
@@ -80,27 +77,15 @@ app/src/main/java/io/legado/app/
 - Both coexist — ComposeViews can overlay View-based Activities.
 - `NonTransitiveRClass` enabled — reference only directly used resources.
 
-## Web frontend (modules/web)
+## Web 远程控制与 Web 前端（已删除）
 
-- Vue 3 + Vite + TypeScript + Element Plus + Pinia.
-- Node >= 20, pnpm >= 9 required.
-- Commands (run from `modules/web/`):
-  - `pnpm install` — install deps
-  - `pnpm dev` — dev server on port 8080 (requires app backend running)
-  - `pnpm build` — type-check → build → run `scripts/sync.js`
-  - `pnpm lint:fix` — eslint
-  - `pnpm format` — prettier
-- **Build artifact**: `pnpm build` outputs to `modules/web/dist/`, then `sync.js` copies to `app/src/main/assets/web/vue/`.
-  - **Local builds**: `sync.js` exits early if `GITHUB_ENV` is not set — you must copy `dist/` manually, or set `GITHUB_ENV`.
-  - **CI**: `web.yml` handles the copy and auto-commits with message `Bump web v...`.
-- Vite config: base path is `./` (relative) for production, `/` for dev.
+内置 HTTP/WS 远程控制与 Vue 3 前端已彻底移除（后端 `web/`+`api/` 包、前端源码 `modules/web/`、前端产物 `assets/web/{vue,uploadBook,index.html,assets,favicon}`、CI `web.yml`）。仅保留 `assets/web/help/` —— 内置 Markdown 帮助，用原生 `TextDialog(Mode.MD)` 打开，非 WebView；书评（段评）走 `ReviewRule.reviewUrl` 网络 URL。上游 GEd520/Legados 仍带 web 功能，merge 时需留意冲突。
 
 ## CI/CD (GitHub Actions)
 
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `test.yml` | Push to main (any path except web) | Builds **all 3 release flavors**. If `updateLog.md` changed → official GitHub/Gitee release; else → beta pre-release. |
-| `web.yml` | Changes in `modules/web/` | Builds Vue frontend, auto-commits to `app/src/main/assets/web/vue/`. Only pushes on upstream repo. |
 | `cronet.yml` | Weekly schedule or manual | Checks for Cronet updates, downloads if newer, creates PR. |
 | `release.yml` | Manual (`workflow_dispatch`) | Builds all 3 flavors, creates release. |
 
@@ -118,6 +103,34 @@ app/src/main/java/io/legado/app/
 - **No pre-commit hooks** — no husky/commitlint config found.
 - Room schema: `ksp { arg("room.schemaLocation", ...) }` exports to `app/schemas/`.
 - Core library desugaring enabled (`coreLibraryDesugaring`).
+
+## 上下分屏阅读模式（upDownPageAnim）— 设计与已修复 bug
+
+本 fork 新增翻页模式 `PageAnim.upDownPageAnim = 5`（`app/src/main/java/io/legado/app/constant/PageAnim.kt:18`）。核心文件：`ui/book/read/page/provider/ChapterProvider.kt`（upDownSplitY/upDownMargin）、`ui/book/read/page/ContentTextView.kt`（drawPage 分节渲染 + 触摸）、`ui/book/read/page/PageView.kt`、`ui/book/read/page/delegate/UpDownPageDelegate.kt`（动画）。`ReadView.kt` 无需改（九宫格点击自然触发 nextPageByAnim/prevPageByAnim）。
+
+**最终模型（v3 定稿，无任何覆盖层）**：
+- 无遮罩、无按钮、无额外视图：阅读区 = 连续文字卷轴 + 画在内容里的分割线（随内容滚动）。全屏触摸透传内容：命中文本/图片 → 点击/选择；空白处 → 九宫格翻页（按节滚动）。
+- `upDownSplitY = visibleHeight/2`（一节 = 半屏，像素级严格对半，保持不变）；`upDownMargin = 10dp`（每节内部排版 padding，仅用于排版、不占滚动，排版可用高度 = upDownSplitY − upDownMargin）。
+- 滚动步长 = 渲染节距 = 跨页修正量 = upDownSplitY（三者必须一致，否则分割线漂移/跳变）。
+- 任意时刻恰好露出两整节，分割线永远在顶/中/底；节内文本按行填充（一节以整行结尾，放不下整体挪下一节，底部留白）；仅当内容（图片/不可断行块）真正超出一节高度时，节底部画渐隐遮罩，纯文本按行填满 → 不显示；整页图（封面）走 isFullPageText 全屏不分屏。
+- 滚动直接复用 `ContentTextView.scroll(delta)`：pageOffset 连续累积，跨整页高（visibleHeight = 两节）才推进 pageFactory 且按整页高修正（连续不跳），书首书尾钳制 + abortAnim。无自由拖拽：按下不跟手，抬手（ACTION_UP）经九宫格触发。`UpDownPageDelegate.computeScroll` 每帧调 `curPage.scroll(delta.toInt())`，scroller 从 0 走到 ±一节，onAnimStop 为空，abortAnim 不弹回。
+
+**已修复 bug 1：懒加载页（"数据加载中"）被分节裁切（2026-10-18）**：根因 = 工厂占位页缺 isLazyLoading 标志，被当普通内容进分节排版、裁成一条。修复：占位页整屏居中显示"数据加载中"，不画分割线；数据加载完成后自动恢复分节排版。
+
+**已修复 bug 2：上下模式触摸失效（2026-10-19）**：三个根因 — A. `isScroll` 短路（upDownPageAnim ≠ scrollPageAnim → isScroll=false，`touch()`/`touchRough()` 在 relativePos>0 直接 return，第二屏节永远不命中；"滚一截"后稳态 pageOffset=−upDownSplitY，curPage 滑出屏幕，整屏触摸失效）；B. 触摸偏移用累计页高 `relativeOffset()`（pageOffset + textPage.height + nextPage.height），与渲染固定节距（pageOffset + N×upDownSplitY）坐标系不一致，偏差 = N×(upDownSplitY−page.height)；C. `touchRough()` 的 isTopLine/midY 过滤（排版时刻标志）与滑动窗口模型矛盾，下半屏行被无条件 continue。修复（全在 `ContentTextView.kt`）：新增 `touchOffset(relativePos)`（upDownPage 时返回 pageOffset + relativePos×upDownSplitY，否则原 relativeOffset），`touch()`/`touchRough()`/`getCurVisiblePage()`/`getReadAloudPos()` 四处改用 touchOffset，短路条件改为 `!callBack.isScroll && !ChapterProvider.upDownPage`，删除 isTopLine/midY 过滤。不变量：空白 → 九宫格按节滚动（行为不变）；命中行/列 → 内容点击/选择（本次修复）；分割线绘制、UpDownPageDelegate、自动翻页、左右/滚动模式零改动。
+
+**回归清单（待真机验证）**：① 上下分屏滚到"数据加载中"页 → 整屏居中显示、不裁成一条，加载完成后自动恢复分节排版；② 上下模式滚一截后：长按文本 → 出现选择手柄、拖选可跨节；点下半区神评/本章说入口图 → 弹出对应页面、不翻页；点空白 → 仍按节滚动/菜单；③ 截图（longScreenshot）与朗读在上下模式下取到的可见页/行位置正确；④ 左右翻页/滚动/封面/双页等其他模式点击与选择无回归。
+
+**版本号格式（app/build.gradle）**：versionName = `0.1.yyMMdd.HHmmss`（GMT+8，如 `0.1.261019.115547`）。**坑**：SimpleDateFormat 小写 `mm` = 分钟、大写 `MM` = 月（曾误写成 yymmdd 导致 `0.1.263318...`）。versionCode 逻辑（`releaseCode()`，yyDDDHHmm）未动。
+
+---
+
+## 已完成改造备忘（过程文档已删除，以 git 历史与代码为准）
+
+- **备份/恢复"树状选择"改造**（2026-09，九轮实机回归通过，**改动尚未 commit**）：27 项扁平 `BackupSelectorConfig` + 9 项恢复忽略列表（`BackupConfig`）合并为统一树状模型 `help/storage/SyncSelection.kt`（VERSION 3，v2 污染态一次性修复：保留其余勾选、强制 readStyle=false、回写 v3）。树面板 = 纯 View `ui/config/SyncSelectionPickerDialog.kt`（第八轮从 Compose 版 SyncSelectionDialog 改为纯 View；`FileValidationDialog` 并入 picker 格式检测，`ValidationResult/ValidationState` 移入 `help/storage/BackupFileValidator.kt`）。备份侧与恢复侧完全对齐（结构 + 显示名称一致）；手动备份/恢复必弹树面板（确认即持久化），WebDAV 自动备份/自动恢复不弹面板、直接跟随上次选择；默认（从未选过）= 除阅读排版（阅读样式）外全选。连带修复：`LogUtils` 文件 handler 懒创建（recordLog 关闭不建文件）+ Formatter 用记录自身时间戳。删除 `BackupSelectorConfig.kt`/`BackupConfig.kt` + `PreferKey.restoreIgnore`。帮助文档 `app/src/main/assets/web/help/md/缓存与导出备份机制.md` 已同步更新。
+- **设置页精简与功能裁剪**（已 commit 7e5c1408/518f8cee）：删视频（BookType.video/BookSourceType.video/GSY 15 个视频资源）、漫画、**Web 远程控制**（见上节"Web 远程控制与 Web 前端（已删除）"）；朗读入口隐藏、代码保留（`view_read_menu.xml` ll_read_aloud→gone 等，AudioPlay 真人演播保留）；启动闪屏恢复（WelcomeActivity），首次安装弹窗删除（`MainActivity.upVersion` isFirstOpenApp→不弹，release 升级仍显示 updateLog）；"我的"页设置项重排。
+
+---
 
 ## Gotchas
 
