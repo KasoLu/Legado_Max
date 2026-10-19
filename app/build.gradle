@@ -26,7 +26,8 @@ static def releaseCode() {
 }
 
 def name = "legado"
-def version = "3." + releaseTime()
+def versionTime = new Date().format("yyMMdd.HHmmss", TimeZone.getTimeZone("GMT+8"))
+def version = "0.1." + versionTime
 def gitCommits = 0
 def bundledReleaseStoreFile = rootProject.file(".github/workflows/legado.jks")
 def resolvedReleaseStoreFile = project.findProperty("RELEASE_STORE_FILE") ? file(project.property("RELEASE_STORE_FILE")) : (bundledReleaseStoreFile.exists() ? bundledReleaseStoreFile : null)
