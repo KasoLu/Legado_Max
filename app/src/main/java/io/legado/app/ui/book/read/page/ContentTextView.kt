@@ -570,6 +570,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 if (!callBack.isScroll && !ChapterProvider.upDownPage) return
                 if (relativeOffset >= ChapterProvider.visibleHeight) return
             }
+            //上下分屏:触点在本节盒子底部以下(内容超出节高的溢出区/节间缝隙),本节任何行都不应命中
+            if (ChapterProvider.upDownPage &&
+                y - relativeOffset > ChapterProvider.paddingTop + ChapterProvider.upDownSplitY - ChapterProvider.upDownMargin
+            ) continue
             val textPage = relativePage(relativePos)
             for ((lineIndex, textLine) in textPage.lines.withIndex()) {
                 if (textLine.isTouch(x, y, relativeOffset)) {
@@ -613,6 +617,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 if (!callBack.isScroll && !ChapterProvider.upDownPage) return
                 if (relativeOffset >= ChapterProvider.visibleHeight) return
             }
+            //上下分屏:触点在本节盒子底部以下(溢出区/节间缝隙),本节任何行都不应命中(选择同源)
+            if (ChapterProvider.upDownPage &&
+                y - relativeOffset > ChapterProvider.paddingTop + ChapterProvider.upDownSplitY - ChapterProvider.upDownMargin
+            ) continue
             val textPage = relativePage(relativePos)
             for (lineIndex in textPage.lines.indices) {
                 val textLine = textPage.getLine(lineIndex)
@@ -726,8 +734,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val textColumn = textLine.getColumn(charIndex)
         upSelectedStart(
             if (charIndex < textLine.columns.size) textColumn.start else textColumn.end,
-            textLine.lineBottom + relativeOffset(relativePagePos),
-            textLine.lineTop + relativeOffset(relativePagePos)
+            textLine.lineBottom + touchOffset(relativePagePos),
+            textLine.lineTop + touchOffset(relativePagePos)
         )
         upSelectChars()
     }
@@ -751,7 +759,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         val textColumn = textLine.getColumn(charIndex)
         upSelectedEnd(
             if (charIndex > -1) textColumn.end else textColumn.start,
-            textLine.lineBottom + relativeOffset(relativePage)
+            textLine.lineBottom + touchOffset(relativePage)
         )
         upSelectChars()
     }
@@ -764,7 +772,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         if (!selectStart.isSelected() && !selectEnd.isSelected()) {
             return
         }
-        val last = if (callBack.isScroll) 2 else 0
+        val last = if (callBack.isScroll || ChapterProvider.upDownPage) 2 else 0
         val textPos = TextPos(0, 0, 0)
         for (relativePos in 0..last) {
             textPos.relativePagePos = relativePos
@@ -808,7 +816,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     }
 
     fun cancelSelect(clearSearchResult: Boolean = false) {
-        val last = if (callBack.isScroll) 2 else 0
+        val last = if (callBack.isScroll || ChapterProvider.upDownPage) 2 else 0
         for (relativePos in 0..last) {
             val textPage = relativePage(relativePos)
             textPage.lines.forEach { textLine ->
