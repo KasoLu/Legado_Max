@@ -809,7 +809,8 @@ object ReadBook : CoroutineScope by MainScope() {
                         download(
                             downloadScope,
                             chapter,
-                            resetPageOffset
+                            resetPageOffset,
+                            success = success
                         )
                     }
                 }
@@ -955,7 +956,7 @@ object ReadBook : CoroutineScope by MainScope() {
         val book = book ?: return removeLoading(chapter.index)
         val bookSource = bookSource
         if (bookSource != null) {
-            CacheBook.getOrCreate(bookSource, book).download(scope, chapter, semaphore)
+            CacheBook.getOrCreate(bookSource, book).download(scope, chapter, semaphore, success = success)
         } else {
             val msg = if (book.isLocal) "无内容" else "没有书源"
             contentLoadFinish(

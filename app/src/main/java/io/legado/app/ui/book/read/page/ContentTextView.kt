@@ -135,20 +135,34 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 绘制页面
      */
     private fun drawPage(canvas: Canvas) {
-        if (ChapterProvider.upDownPage && !isFullPageText(textPage) && !textPage.isLazyLoading) {
+        if (ChapterProvider.upDownPage && !isFullPageText(textPage)) {
+            // 整屏占位页(旧机制,不变):首开/无缓存整体重排时当前章没有任何真实页,
+            // 整条卷轴都是占位,保持原整屏居中"数据加载中";其余情况走下面的分节渲染
+            val curChapter = ReadBook.curTextChapter
+            if (textPage.isLazyLoading && (curChapter == null || curChapter.pageSize == 0)) {
+                textPage.draw(this, canvas, 0f)
+                return
+            }
             // 连续文字卷轴：上截+当前截+下截+下下截，段间画分割线(压痕)，整条一起平移
             val rel = relativeOffset(0) + upDownShiftY
             // 节距 = 一节(严格半屏)；16dp 是节内"内容到分割线"的间距，不是节与节之间的间距
             val gap = ChapterProvider.upDownSplitY
             if (pageFactory.hasPrev()) {
-                drawUpDownSegment(canvas, relativePage(-1), rel - gap)
+                val prev = relativePage(-1)
+                if (prev.isLazyLoading) drawUpDownPlaceholderSegment(canvas, rel - gap)
+                else drawUpDownSegment(canvas, prev, rel - gap)
             }
-            drawUpDownSegment(canvas, textPage, rel)
+            if (textPage.isLazyLoading) drawUpDownPlaceholderSegment(canvas, rel)
+            else drawUpDownSegment(canvas, textPage, rel)
             if (pageFactory.hasNext()) {
-                drawUpDownSegment(canvas, relativePage(1), rel + gap)
+                val next = relativePage(1)
+                if (next.isLazyLoading) drawUpDownPlaceholderSegment(canvas, rel + gap)
+                else drawUpDownSegment(canvas, next, rel + gap)
             }
             if (pageFactory.hasNextPlus()) {
-                drawUpDownSegment(canvas, relativePage(2), rel + 2f * gap)
+                val nextPlus = relativePage(2)
+                if (nextPlus.isLazyLoading) drawUpDownPlaceholderSegment(canvas, rel + 2f * gap)
+                else drawUpDownSegment(canvas, nextPlus, rel + 2f * gap)
             }
             return
         }
@@ -179,8 +193,6 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 并在截底边画分割线(卫生纸压痕)。[off] 为该截内容顶相对 paddingTop 的偏移。
      */
     private fun drawUpDownSegment(canvas: Canvas, page: TextPage, off: Float) {
-        // 懒加载占位页不作为"节"绘制(它只作为当前页整屏展示)，避免被裁剪分割成一条
-        if (page.isLazyLoading) return
         val top = ChapterProvider.paddingTop + off
         val boxBottom = top + ChapterProvider.upDownSplitY - ChapterProvider.upDownMargin
         canvas.save()
@@ -209,6 +221,26 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 0.114f * Color.blue(bgColor)
         upDownDividerPaint.color = if (lum > 128) 0x80000000.toInt() else 0x99FFFFFF.toInt()
         canvas.drawLine(0f, y, width.toFloat(), y, upDownDividerPaint)
+    }
+    /**
+     * 占位节(上下分屏新增机制,区别于旧的 isLazyLoading 整屏占位页):
+     * 卷轴末尾内容尚未加载时,该节按普通一节渲染——节顶"数据加载中"文案 + 节底分割线,
+     * 文案用排版正文同款 contentPaint(字号/字体/颜色天然一致),随滚动一起流动;
+     * 可见期间向下滚动被锁(见 ReadView.isUpDownPlaceholderVisible)。
+     */
+    private fun drawUpDownPlaceholderSegment(canvas: Canvas, off: Float) {
+        val top = ChapterProvider.paddingTop + off
+        val boxBottom = top + ChapterProvider.upDownSplitY - ChapterProvider.upDownMargin
+        canvas.save()
+        canvas.clipRect(0f, top, width.toFloat(), boxBottom)
+        canvas.drawText(
+            "加载中",
+            ChapterProvider.paddingLeft.toFloat(),
+            top + ChapterProvider.upDownMargin - ChapterProvider.contentPaintFontMetrics.ascent,
+            ChapterProvider.contentPaint
+        )
+        canvas.restore()
+        drawUpDownDivider(canvas, top + ChapterProvider.upDownSplitY)
     }
 
     /**

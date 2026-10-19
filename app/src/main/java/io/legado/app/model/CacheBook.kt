@@ -548,7 +548,8 @@ object CacheBook {
             scope: CoroutineScope,
             chapter: BookChapter,
             semaphore: Semaphore?,
-            resetPageOffset: Boolean = false
+            resetPageOffset: Boolean = false,
+            success: (() -> Unit)? = null
         ) {
             if (onDownloadSet.contains(chapter.index)) {
                 return
@@ -567,15 +568,15 @@ object CacheBook {
                 onSuccess(chapter)
                 ReadBook.downloadedChapters.add(chapter.index)
                 ReadBook.downloadFailChapters.remove(chapter.index)
-                downloadFinish(chapter, content, resetPageOffset)
+                downloadFinish(chapter, content, resetPageOffset, success = success)
             }.onError {
                 onError(chapter, it)
                 ReadBook.downloadFailChapters[chapter.index] =
                     (ReadBook.downloadFailChapters[chapter.index] ?: 0) + 1
-                downloadFinish(chapter, "获取正文失败\n${it.localizedMessage}", resetPageOffset)
+                downloadFinish(chapter, "获取正文失败\n${it.localizedMessage}", resetPageOffset, success = success)
             }.onCancel {
                 onCancel(chapter.index)
-                downloadFinish(chapter, "download canceled", resetPageOffset, true)
+                downloadFinish(chapter, "download canceled", resetPageOffset, true, success = success)
             }.onFinally {
                 postEvent(EventBus.UP_DOWNLOAD, book.bookUrl)
             }.start()
@@ -592,13 +593,15 @@ object CacheBook {
             chapter: BookChapter,
             content: String,
             resetPageOffset: Boolean = false,
-            canceled: Boolean = false
+            canceled: Boolean = false,
+            success: (() -> Unit)? = null
         ) {
             if (ReadBook.book?.bookUrl == book.bookUrl) {
                 ReadBook.contentLoadFinish(
                     book, chapter, content,
                     resetPageOffset = resetPageOffset,
-                    canceled = canceled
+                    canceled = canceled,
+                    success = success
                 )
             }
         }

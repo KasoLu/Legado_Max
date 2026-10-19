@@ -177,6 +177,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
         super.dispatchDraw(canvas)
         pageDelegate?.onDraw(canvas)
         autoPager.onDraw(canvas)
+        requestNextChapterForPlaceholder()
     }
 
     override fun computeScroll() {
@@ -580,10 +581,44 @@ class ReadView(context: Context, attrs: AttributeSet) :
             }
 
             PageDirection.NEXT -> {
-                pageFactory.moveToNext(true)
+                //上下分屏:占位节在视野内时锁定向下,自动翻页随之停止
+                if (ChapterProvider.upDownPage && isUpDownPlaceholderVisible()) {
+                    false
+                } else {
+                    pageFactory.moveToNext(true)
+                }
             }
 
             else -> false
+        }
+    }
+
+    /**
+     * 上下分屏:占位节(懒加载占位页)是否出现在当前视野(cur/next/nextPlus 三节)内。
+     * 占位节可见时锁定向下滚动(只能向上翻),消失即解锁。
+     */
+    fun isUpDownPlaceholderVisible(): Boolean {
+        return curPage.textPage.isLazyLoading ||
+            (pageFactory.hasNext() && pageFactory.nextPage.isLazyLoading) ||
+            (pageFactory.hasNextPlus() && pageFactory.nextPlusPage.isLazyLoading)
+    }
+
+    /**
+     * 上下分屏:占位节出现在视野中、当前章已读完、下一章还没有任何数据时,
+     * 直接请求下一章数据(不推进阅读位置)。预请求关闭/页数为0时的兜底触发,
+     * loadContent 内部 addLoading 去重,重复调用安全。
+     */
+    fun requestNextChapterForPlaceholder() {
+        if (!ChapterProvider.upDownPage) return
+        if (!isUpDownPlaceholderVisible()) return
+        val cur = ReadBook.curTextChapter ?: return
+        if (!cur.isFullyLoaded()) return
+        val next = ReadBook.nextTextChapter
+        if (next != null && next.pageSize > 0) return
+        ReadBook.loadContent(ReadBook.durChapterIndex + 1, upContent = false) {
+            // 数据到位:用工厂重新取页刷入各页视图(占位节所在槽位变真实第一节),
+            // resetPageOffset=false 保持滚动偏移——新内容原地出现,不跳页不重置
+            post { upContent(0, false) }
         }
     }
 

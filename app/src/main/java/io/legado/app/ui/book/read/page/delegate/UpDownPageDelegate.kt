@@ -75,6 +75,8 @@ class UpDownPageDelegate(readView: ReadView) : PageDelegate(readView) {
     override fun nextPageByAnim(animationSpeed: Int) {
         abortAnim()
         if (!hasNext()) return
+        //占位节在视野内:锁定向下滚动,只能向上翻
+        if (readView.isUpDownPlaceholderVisible()) return
         setDirection(PageDirection.NEXT)
         readView.setStartPoint(viewWidth * 0.5f, viewHeight * 0.5f, false)
         onAnimStart(animationSpeed)
