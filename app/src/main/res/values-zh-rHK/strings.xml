@@ -373,6 +373,7 @@
     <string name="cover_path">封面地址</string>
     <string name="page_anim_cover">覆蓋</string>
     <string name="page_anim_slide">滑動</string>
+    <string name="page_anim_updown">上下</string>
     <string name="page_anim_simulation">仿真</string>
     <string name="page_anim_scroll">滾動</string>
     <string name="page_anim_none">無動畫</string>

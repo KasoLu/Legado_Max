@@ -4,10 +4,12 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.SystemClock
 import androidx.core.graphics.withClip
+import androidx.core.graphics.withTranslation
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.ui.book.read.page.entities.PageDirection
+import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.utils.canvasrecorder.CanvasRecorderFactory
 import io.legado.app.utils.canvasrecorder.recordIfNeeded
 
@@ -20,6 +22,7 @@ class AutoPager(private val readView: ReadView) : Runnable {
         private set
     private var isPausing = false
     private var isEInkMode = false
+    private val isUpDown get() = ChapterProvider.upDownPage
     private var scrollOffsetRemain = 0.0
     private var scrollOffset = 0
     private var lastTimeMillis = 0L
@@ -107,17 +110,33 @@ class AutoPager(private val readView: ReadView) : Runnable {
             val width = readView.width
 
             canvasRecorder.recordIfNeeded(readView.nextPage)
-            canvas.withClip(0, 0, width, bottom) {
-                canvasRecorder.draw(this)
+            if (isUpDown) {
+                //上下分屏：下一页指示从屏幕底部进入
+                val h = readView.height
+                canvas.withClip(0, h - bottom, width, h) {
+                    canvas.withTranslation(0f, (h - bottom).toFloat()) {
+                        canvasRecorder.draw(this)
+                    }
+                }
+                canvas.drawRect(
+                    0f,
+                    (h - bottom).toFloat() - 1,
+                    width.toFloat(),
+                    (h - bottom).toFloat(),
+                    paint
+                )
+            } else {
+                canvas.withClip(0, 0, width, bottom) {
+                    canvasRecorder.draw(this)
+                }
+                canvas.drawRect(
+                    0f,
+                    bottom.toFloat() - 1,
+                    width.toFloat(),
+                    bottom.toFloat(),
+                    paint
+                )
             }
-
-            canvas.drawRect(
-                0f,
-                bottom.toFloat() - 1,
-                width.toFloat(),
-                bottom.toFloat(),
-                paint
-            )
             if (!isPausing) readView.postInvalidate()
         }
 
@@ -133,7 +152,7 @@ class AutoPager(private val readView: ReadView) : Runnable {
         lastTimeMillis = currentTime
 
         val readTime = ReadBookConfig.autoReadSpeed * 1000.0
-        val height = readView.height
+        val height = if (isUpDown) readView.height / 2 else readView.height
         scrollOffsetRemain += height / readTime * elapsedTime
         if (scrollOffsetRemain < 1) {
             return

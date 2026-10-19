@@ -62,6 +62,7 @@ object BookHelp {
     private const val cacheFolderName = "book_cache"
     private const val cacheImageFolderName = "images"
     private const val cacheEpubFolderName = "epub"
+    const val layoutCacheFolderName = "layout_cache"
     private val downloadImages = ConcurrentHashMap<String, Mutex>()
 
     val cachePath = FileUtils.getPath(downloadDir, cacheFolderName)
@@ -70,11 +71,16 @@ object BookHelp {
         FileUtils.delete(
             FileUtils.getPath(downloadDir, cacheFolderName)
         )
+        FileUtils.delete(
+            FileUtils.getPath(downloadDir, layoutCacheFolderName)
+        )
     }
 
     fun clearCache(book: Book) {
         val filePath = FileUtils.getPath(downloadDir, cacheFolderName, book.getFolderName())
         FileUtils.delete(filePath)
+        val layoutPath = FileUtils.getPath(downloadDir, layoutCacheFolderName, book.getFolderName())
+        FileUtils.delete(layoutPath)
     }
 
     fun updateCacheFolder(oldBook: Book, newBook: Book) {
@@ -92,6 +98,10 @@ object BookHelp {
             newFolderName
         )
         FileUtils.move(oldFolderPath, newFolderPath)
+        FileUtils.move(
+            FileUtils.getPath(downloadDir, layoutCacheFolderName, oldFolderName),
+            FileUtils.getPath(downloadDir, layoutCacheFolderName, newFolderName)
+        )
     }
 
     /**

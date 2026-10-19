@@ -9,6 +9,7 @@ import android.view.WindowManager
 import androidx.core.view.get
 import com.github.liuyueyi.quick.transfer.constants.TransType
 import io.legado.app.R
+import io.legado.app.constant.PageAnim
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
@@ -39,6 +40,13 @@ class ReadStyleDialog : BaseDialogFragment(R.layout.dialog_read_book_style),
     private val binding by viewBinding(DialogReadBookStyleBinding::bind)
     private val callBack get() = activity as? ReadBookActivity
     private lateinit var styleAdapter: StyleAdapter
+    private val animValues = intArrayOf(
+        PageAnim.coverPageAnim,
+        PageAnim.upDownPageAnim,
+        PageAnim.simulationPageAnim,
+        PageAnim.scrollPageAnim,
+        PageAnim.noAnim
+    )
 
     override fun onStart() {
         super.onStart()
@@ -134,8 +142,9 @@ class ReadStyleDialog : BaseDialogFragment(R.layout.dialog_read_book_style),
             TipConfigDialog().show(childFragmentManager, "tipConfigDialog")
         }
         rgPageAnim.setOnCheckedChangeListener { _, checkedId ->
+            val index = binding.rgPageAnim.getIndexById(checkedId)
             ReadBook.book?.setPageAnim(-1)
-            ReadBookConfig.pageAnim = binding.rgPageAnim.getIndexById(checkedId)
+            ReadBookConfig.pageAnim = animValues[index]
             callBack?.upPageAnim()
             ReadBook.loadContent(false)
         }
@@ -185,9 +194,10 @@ class ReadStyleDialog : BaseDialogFragment(R.layout.dialog_read_book_style),
 
     private fun upView() = binding.run {
         textFontWeightConverter.upUi(ReadBookConfig.textBold)
-        ReadBook.pageAnim().let {
-            if (it >= 0 && it < rgPageAnim.childCount) {
-                rgPageAnim.check(rgPageAnim[it].id)
+        ReadBook.pageAnim().let { value ->
+            val index = animValues.indexOf(value)
+            if (index in 0 until rgPageAnim.childCount) {
+                rgPageAnim.check(rgPageAnim[index].id)
             }
         }
         ReadBookConfig.let {

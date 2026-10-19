@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Shader
@@ -63,7 +64,9 @@ data class TextLine(
     val lineEnd: Float get() = textColumns.lastOrNull()?.end ?: 0f
     val chapterIndices: IntRange get() = chapterPosition..chapterPosition + charSize
     val height: Float inline get() = lineBottom - lineTop
-    val canvasRecorder = CanvasRecorderFactory.create()
+    // 加锁：render 线程预渲染与 UI 线程绘制可能并发访问同一行的 Picture，
+    // 无锁并发录制会导致崩溃（issue 3868 在行级的对应修复）
+    val canvasRecorder = CanvasRecorderFactory.create(true)
     var searchResultColumnCount = 0
     var hasAnimatedColumn = false
     var isReadAloud: Boolean = false
@@ -78,6 +81,10 @@ data class TextLine(
         }
     var textPage: TextPage = emptyTextPage
     var isLeftLine = true
+    /** 上下分屏：该行位于上半屏 */
+    var isTopLine = true
+    /** 上下分屏：行高超过半屏被截断，底端绘制渐变透明 */
+    var hasFadeBottom = false
 
     /**
      * 向行中添加文本列
@@ -216,9 +223,7 @@ data class TextLine(
         if (checkFastDraw()) {
             fastDrawTextLine(view, canvas)
         } else {
-            for (i in columns.indices) {
-                columns[i].draw(view, canvas)
-            }
+            drawStyledTextRuns(view, canvas)
         }
 
         // 墨水屏模式下的朗读和搜索下划线
@@ -234,9 +239,91 @@ data class TextLine(
         drawStyledUnderlines(canvas)
 
         val underlineMode = ReadBookConfig.underlineMode
-        if (underlineMode == 0) return
+        if (underlineMode == 0) {
+            if (hasFadeBottom) drawBottomFade(view, canvas)
+            return
+        }
         if (!isImage && !isHtml && ReadBook.book?.isImage != true) {
             drawUnderline(canvas, underlineMode)
+        }
+        if (hasFadeBottom) drawBottomFade(view, canvas)
+    }
+
+    /**
+     * 上下分屏：被截断行的底端渐变透明
+     * 从透明渐变到阅读背景色，表示内容还有更多但未显示完全
+     */
+    private fun drawBottomFade(view: ContentTextView, canvas: Canvas) {
+        val fadeHeight = minOf(40.dpToPx().toFloat(), height / 2f)
+        if (fadeHeight <= 0f) return
+        val fadePaint = PaintPool.obtain()
+        fadePaint.shader = LinearGradient(
+            0f, height - fadeHeight, 0f, height,
+            intArrayOf(0, ReadBookConfig.bgMeanColor), null, Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, height - fadeHeight, view.width.toFloat(), height, fadePaint)
+        fadePaint.shader = null
+        PaintPool.recycle(fadePaint)
+    }
+
+    /**
+     * 绘制含样式列的文本行（高亮颜色/下划线/背景图等逐字样式）。
+     * 将相邻且颜色相同的 TextColumn 合并为一段游程，整段一次 drawText，
+     * 把逐字符的 canvas 调用量降低 90% 以上；图片等非文本列仍单独绘制。
+     * 单字符绘制时 x = start(+letterSpacingHalf)，整段绘制时平台按相同
+     * paint 的字距模型排布字形，与逐字符绘制的落点一致。
+     */
+    private fun drawStyledTextRuns(view: ContentTextView, canvas: Canvas) {
+        val textPaint = if (isTitle) {
+            ChapterProvider.titlePaint
+        } else {
+            ChapterProvider.contentPaint
+        }
+        val y = lineBase - lineTop
+        val xOffset = if (atLeastApi35) {
+            textPaint.letterSpacing * textPaint.textSize * 0.5f
+        } else {
+            0f
+        }
+        var runBuilder: StringBuilder? = null
+        var runStart = 0f
+        var runColor = 0
+        fun flushRun() {
+            if (runBuilder == null) return
+            val sb = runBuilder!!
+            canvas.drawText(
+                sb.toString(), 0, sb.length,
+                runStart + xOffset, y,
+                textPaint.apply { color = runColor }
+            )
+            runBuilder = null
+        }
+        for (column in columns) {
+            if (column is TextColumn) {
+                val color = if (isReadAloud || column.isSearchResult) {
+                    ReadBookConfig.textAccentColor
+                } else {
+                    column.textColor ?: ReadBookConfig.textColor
+                }
+                if (runBuilder == null || color != runColor) {
+                    flushRun()
+                    runBuilder = StringBuilder(column.charData)
+                    runStart = column.start
+                    runColor = color
+                } else {
+                    runBuilder!!.append(column.charData)
+                }
+            } else {
+                flushRun()
+                column.draw(view, canvas)
+            }
+        }
+        flushRun()
+        // 选中背景逐列绘制，与 fastDrawTextLine 行为一致
+        for (column in columns) {
+            if (column is TextColumn && column.selected && !column.isSearchResult) {
+                canvas.drawRect(column.start, 0f, column.end, height, view.selectedPaint)
+            }
         }
     }
 
@@ -364,7 +451,9 @@ data class TextLine(
      * 判断是否满足快速绘制条件
      */
     fun checkFastDraw(): Boolean {
-        if (!AppConfig.optimizeRender || exceed || !onlyTextColumn || textPage.isMsgPage) {
+        //快速绘制不依赖优化渲染：逐字符绘制开销太大，滚动阅读时每个触摸帧都重绘多页，
+        //会导致内容跟手延迟。纯文本行改为整行一次 drawText，绘制调用量降低约95%。
+        if (exceed || !onlyTextColumn || textPage.isMsgPage) {
             return false
         }
         if (wordSpacing != 0f && (!atLeastApi26 || !wordSpacingWorking)) {

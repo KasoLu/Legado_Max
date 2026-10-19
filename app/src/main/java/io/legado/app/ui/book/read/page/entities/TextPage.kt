@@ -55,6 +55,12 @@ data class TextPage(
     var isMsgPage: Boolean = false
     var canvasRecorder = CanvasRecorderFactory.create(true)
     var doublePage = false
+    /** 上下分屏页：同时包含上下两个半屏的行 */
+    var upDownPage = false
+    /** 上下分屏：整页全屏内容(如封面图)，不画分割线、不拆分 */
+    var isFullPage = false
+    /** 上下分屏：懒加载占位页("正在加载下一页…")，保持整屏展示不分割，内容加载后再按节排版 */
+    var isLazyLoading = false
     var paddingTop = ChapterProvider.paddingTop
     var isCompleted = false
     var hasReadAloudSpan = false
@@ -101,6 +107,7 @@ data class TextPage(
      * 底部对齐更新行位置
      */
     fun upLinesPosition() {
+        if (upDownPage) return
         if (!ReadBookConfig.textBottomJustify) return
         if (textLines.size <= 1) return
         if (leftLineSize == 0) {

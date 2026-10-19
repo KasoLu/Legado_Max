@@ -3,6 +3,10 @@ package io.legado.app.ui.book.read.page
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Color
+import android.graphics.DashPathEffect
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -10,6 +14,7 @@ import io.legado.app.R
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.help.book.isOnLineTxt
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.association.OpenUrlConfirmActivity
 import io.legado.app.ui.book.read.page.delegate.PageDelegate
@@ -81,6 +86,14 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
+    /** 上下分屏的分割线(卫生纸压痕)，作为内容的一部分随内容一起滚动 */
+    private val upDownDividerPaint = Paint().apply {
+        strokeWidth = 1.dpToPx().toFloat()
+        pathEffect = DashPathEffect(floatArrayOf(10f.dpToPx(), 8f.dpToPx()), 0f)
+    }
+    /** 上下分屏盒底"渐变到透明"过渡遮罩：覆盖溢出内容，提示下方还有内容 */
+    private val upDownFadePaint = Paint()
+
     init {
         callBack = activity as CallBack
     }
@@ -122,10 +135,29 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 绘制页面
      */
     private fun drawPage(canvas: Canvas) {
-        var relativeOffset = relativeOffset(0)
+        if (ChapterProvider.upDownPage && !isFullPageText(textPage) && !textPage.isLazyLoading) {
+            // 连续文字卷轴：上截+当前截+下截+下下截，段间画分割线(压痕)，整条一起平移
+            val rel = relativeOffset(0)
+            // 节距 = 一节(严格半屏)；16dp 是节内"内容到分割线"的间距，不是节与节之间的间距
+            val gap = ChapterProvider.upDownSplitY
+            if (pageFactory.hasPrev()) {
+                drawUpDownSegment(canvas, relativePage(-1), rel - gap)
+            }
+            drawUpDownSegment(canvas, textPage, rel)
+            if (pageFactory.hasNext()) {
+                drawUpDownSegment(canvas, relativePage(1), rel + gap)
+            }
+            if (pageFactory.hasNextPlus()) {
+                drawUpDownSegment(canvas, relativePage(2), rel + 2f * gap)
+            }
+            return
+        }
+        // 懒加载页固定从0画(整屏)，不受滚动偏移影响
+        var relativeOffset = if (textPage.isLazyLoading) 0f else relativeOffset(0)
         textPage.draw(this, canvas, relativeOffset)
+        // 懒加载页只画自己(整屏)，不画相邻节，避免被"分割"
+        if (textPage.isLazyLoading) return
         if (!callBack.isScroll) return
-        //滚动翻页
         if (!pageFactory.hasNext()) return
         val textPage1 = relativePage(1)
         relativeOffset += textPage.height
@@ -136,6 +168,56 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             val textPage2 = relativePage(2)
             textPage2.draw(this, canvas, relativeOffset)
         }
+    }
+
+    /**
+     * 绘制上下分屏的分割线(卫生纸压痕)。画在内容坐标系 upDownSplitY 处，
+     * 作为内容的一部分，翻页时随内容一起上移/下移。
+     */
+    /**
+     * 绘制上下分屏的一个截：裁剪到该截盒子内，防止富文本块(作者说/评论等)溢出到相邻截；
+     * 并在截底边画分割线(卫生纸压痕)。[off] 为该截内容顶相对 paddingTop 的偏移。
+     */
+    private fun drawUpDownSegment(canvas: Canvas, page: TextPage, off: Float) {
+        // 懒加载占位页不作为"节"绘制(它只作为当前页整屏展示)，避免被裁剪分割成一条
+        if (page.isLazyLoading) return
+        val top = ChapterProvider.paddingTop + off
+        val boxBottom = top + ChapterProvider.upDownSplitY - ChapterProvider.upDownMargin
+        canvas.save()
+        canvas.clipRect(0f, top, width.toFloat(), boxBottom)
+        page.draw(this, canvas, off)
+        canvas.restore()
+        // 溢出渐隐：仅当内容真正越过节高(page.height > upDownSplitY，不含padding)时，从分割线向上渐变到透明；纯文本按行填满不越界→不显示
+        if (page.height > ChapterProvider.upDownSplitY) {
+            val fadeH = 24.dpToPx().toFloat()
+            val dividerY = top + ChapterProvider.upDownSplitY
+            upDownFadePaint.shader = LinearGradient(
+                0f, dividerY - fadeH, 0f, dividerY,
+                Color.TRANSPARENT, ReadBookConfig.bgMeanColor, Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(0f, dividerY - fadeH, width.toFloat(), dividerY, upDownFadePaint)
+        }
+        drawUpDownDivider(canvas, top + ChapterProvider.upDownSplitY)
+    }
+
+    /**
+     * 在内容坐标系的 [y] 处绘制上下分屏的分割线(卫生纸压痕)，随内容一起滚动。
+     */
+    private fun drawUpDownDivider(canvas: Canvas, y: Float) {
+        val bgColor = ReadBookConfig.bgMeanColor
+        val lum = 0.299f * Color.red(bgColor) + 0.587f * Color.green(bgColor) +
+                0.114f * Color.blue(bgColor)
+        upDownDividerPaint.color = if (lum > 128) 0x80000000.toInt() else 0x99FFFFFF.toInt()
+        canvas.drawLine(0f, y, width.toFloat(), y, upDownDividerPaint)
+    }
+
+    /**
+     * 判断页面是否为整页全屏图(封面页)，整页图不做上下分屏
+     */
+    private fun isFullPageText(textPage: TextPage): Boolean {
+        if (textPage.lineSize != 1) return false
+        val line = textPage.lines[0]
+        return line.isImage && line.height >= ChapterProvider.visibleHeight
     }
 
     override fun computeScroll() {
@@ -150,6 +232,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      * 以内容显示区域顶端为界，pageOffset的绝对值为textPage上方的高度
      * pageOffset + textPage.height 为 textPage 下方的高度
      */
+    /**
+     * 翻页滚动步长/边界：一律用整页高。
+     * scroll() 的翻页边界和 offset 修正都用它——offset 越过一整页才推进 pageFactory。
+     * 上下分屏的"一截"位移步长由 UpDownPageDelegate.scrollDist 单独定义，不在此处。
+     */
+    private val scrollHeight: Float
+        // 上下分屏：一节间距=严格半屏(upDownSplitY)，跨页修正按它，与渲染节距/滚动步长一致；
+        // 其他模式仍用整页高
+        get() = if (ChapterProvider.upDownPage) ChapterProvider.upDownSplitY else textPage.height
     fun scroll(mOffset: Int) {
         pageOffset += mOffset
         if (longScreenshot) {
@@ -160,20 +251,20 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             pageDelegate?.abortAnim()
         } else if (!pageFactory.hasNext()
             && pageOffset < 0
-            && pageOffset + textPage.height < ChapterProvider.visibleHeight
+            && pageOffset + scrollHeight < ChapterProvider.visibleHeight
         ) {
-            val offset = (ChapterProvider.visibleHeight - textPage.height).toInt()
+            val offset = (ChapterProvider.visibleHeight - scrollHeight).toInt()
             pageOffset = min(0, offset)
             pageDelegate?.abortAnim()
         } else if (pageOffset > 0) {
             if (pageFactory.moveToPrev(true)) {
-                pageOffset -= textPage.height.toInt()
+                pageOffset -= scrollHeight.toInt()
             } else {
                 pageOffset = 0
                 pageDelegate?.abortAnim()
             }
-        } else if (pageOffset < -textPage.height) {
-            val height = textPage.height
+        } else if (pageOffset < -scrollHeight) {
+            val height = scrollHeight
             if (pageFactory.moveToNext(upContent = true)) {
                 pageOffset += height.toInt()
             } else {
@@ -441,10 +532,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         if (!visibleRect.contains(x, y)) return
         var relativeOffset: Float
         for (relativePos in 0..2) {
-            relativeOffset = relativeOffset(relativePos)
+            relativeOffset = touchOffset(relativePos)
             if (relativePos > 0) {
                 //滚动翻页
-                if (!callBack.isScroll) return
+                if (!callBack.isScroll && !ChapterProvider.upDownPage) return
                 if (relativeOffset >= ChapterProvider.visibleHeight) return
             }
             val textPage = relativePage(relativePos)
@@ -484,10 +575,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     ) {
         var relativeOffset: Float
         for (relativePos in 0..2) {
-            relativeOffset = relativeOffset(relativePos)
+            relativeOffset = touchOffset(relativePos)
             if (relativePos > 0) {
                 //滚动翻页
-                if (!callBack.isScroll) return
+                if (!callBack.isScroll && !ChapterProvider.upDownPage) return
                 if (relativeOffset >= ChapterProvider.visibleHeight) return
             }
             val textPage = relativePage(relativePos)
@@ -529,14 +620,22 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
 
+    /**
+     * 上下分屏：判断页面是否为整页全屏图(封面页)
+     */
+    private fun isFullPage(textPage: TextPage): Boolean {
+        if (textPage.lineSize != 1) return false
+        val line = textPage.lines[0]
+        return line.isImage && line.height >= ChapterProvider.visibleHeight
+    }
     fun getCurVisiblePage(): TextPage {
         val visiblePage = TextPage()
         var relativeOffset: Float
         for (relativePos in 0..2) {
-            relativeOffset = relativeOffset(relativePos)
+            relativeOffset = touchOffset(relativePos)
             if (relativePos > 0) {
                 //滚动翻页
-                if (!callBack.isScroll) break
+            if (!callBack.isScroll && !ChapterProvider.upDownPage) break
                 if (relativeOffset >= ChapterProvider.visibleHeight) break
             }
             val textPage = relativePage(relativePos)
@@ -558,10 +657,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     fun getReadAloudPos(): Pair<Int, TextLine>? {
         var relativeOffset: Float
         for (relativePos in 0..2) {
-            relativeOffset = relativeOffset(relativePos)
+            relativeOffset = touchOffset(relativePos)
             if (relativePos > 0) {
                 //滚动翻页
-                if (!callBack.isScroll) break
+            if (!callBack.isScroll && !ChapterProvider.upDownPage) break
                 if (relativeOffset >= ChapterProvider.visibleHeight) break
             }
             val textPage = relativePage(relativePos)
@@ -765,9 +864,21 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             else -> pageOffset + textPage.height + pageFactory.nextPage.height
         }
     }
+    /**
+     * 触摸命中测试的偏移：上下分屏渲染是固定节距(pageOffset + N * upDownSplitY)，
+     * 与累计页高不同，触摸必须用同一坐标系才能命中；其他模式沿用累计页高。
+     */
+    private fun touchOffset(relativePos: Int): Float {
+        return if (ChapterProvider.upDownPage) {
+            pageOffset + relativePos * ChapterProvider.upDownSplitY
+        } else {
+            relativeOffset(relativePos)
+        }
+    }
 
     fun relativePage(relativePos: Int): TextPage {
         return when (relativePos) {
+            -1 -> pageFactory.prevPage
             0 -> textPage
             1 -> pageFactory.nextPage
             else -> pageFactory.nextPlusPage

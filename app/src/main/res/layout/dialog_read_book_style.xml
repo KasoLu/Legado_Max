@@ -211,7 +211,7 @@
             android:gravity="center"
             android:padding="5dp"
             android:singleLine="true"
-            android:text="@string/page_anim_slide"
+            android:text="@string/page_anim_updown"
             app:isBottomBackground="true" />
 
         <io.legado.app.lib.theme.view.ThemeRadioNoButton

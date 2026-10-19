@@ -28,6 +28,7 @@ import io.legado.app.ui.book.read.page.delegate.PageDelegate
 import io.legado.app.ui.book.read.page.delegate.ScrollPageDelegate
 import io.legado.app.ui.book.read.page.delegate.SimulationPageDelegate
 import io.legado.app.ui.book.read.page.delegate.SlidePageDelegate
+import io.legado.app.ui.book.read.page.delegate.UpDownPageDelegate
 import io.legado.app.ui.book.read.page.entities.PageDirection
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.entities.TextLine
@@ -590,7 +591,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
      * 更新翻页动画
      */
     fun upPageAnim(upRecorder: Boolean = false) {
-        isScroll = ReadBook.pageAnim() == 3
+        isScroll = ReadBook.pageAnim() == PageAnim.scrollPageAnim
         ChapterProvider.upLayout()
         when (ReadBook.pageAnim()) {
             PageAnim.coverPageAnim -> if (pageDelegate !is CoverPageDelegate) {
@@ -607,6 +608,11 @@ class ReadView(context: Context, attrs: AttributeSet) :
 
             PageAnim.scrollPageAnim -> if (pageDelegate !is ScrollPageDelegate) {
                 pageDelegate = ScrollPageDelegate(this)
+            }
+
+            // 上下分屏：只由九宫格上下按钮触发"平移一截"离散动画，无自由滚动；渲染为连续卷轴+分割线+盒底渐隐
+            PageAnim.upDownPageAnim -> if (pageDelegate !is UpDownPageDelegate) {
+                pageDelegate = UpDownPageDelegate(this)
             }
 
             else -> if (pageDelegate !is NoAnimPageDelegate) {

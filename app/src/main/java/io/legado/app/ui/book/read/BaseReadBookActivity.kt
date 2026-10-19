@@ -17,6 +17,7 @@ import android.app.AlertDialog
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.AppConst.charsets
+import io.legado.app.constant.PageAnim
 import io.legado.app.constant.PreferKey
 import io.legado.app.databinding.ActivityBookReadBinding
 import io.legado.app.databinding.DialogDownloadChoiceBinding
@@ -372,12 +373,20 @@ abstract class BaseReadBookActivity :
         val items = arrayListOf<String>()
         items.add(getString(R.string.btn_default_s))
         items.add(getString(R.string.page_anim_cover))
-        items.add(getString(R.string.page_anim_slide))
+        items.add(getString(R.string.page_anim_updown))
         items.add(getString(R.string.page_anim_simulation))
         items.add(getString(R.string.page_anim_scroll))
         items.add(getString(R.string.page_anim_none))
+        val animValues = intArrayOf(
+            -1,
+            PageAnim.coverPageAnim,
+            PageAnim.upDownPageAnim,
+            PageAnim.simulationPageAnim,
+            PageAnim.scrollPageAnim,
+            PageAnim.noAnim
+        )
         selector(R.string.page_anim, items) { _, i ->
-            ReadBook.book?.setPageAnim(i - 1)
+            ReadBook.book?.setPageAnim(animValues[i])
             success()
         }
     }

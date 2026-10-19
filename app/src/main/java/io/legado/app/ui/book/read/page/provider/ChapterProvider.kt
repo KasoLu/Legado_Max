@@ -8,6 +8,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import androidx.core.os.postDelayed
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.PageAnim
 import io.legado.app.constant.EventBus
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
@@ -131,6 +132,20 @@ object ChapterProvider {
 
     @JvmStatic
     var doublePage = false
+        private set
+
+    @JvmStatic
+    var upDownPage = false
+        private set
+
+    /** 上下分屏分割线位置(相对页面顶部)，visibleHeight 的一半 */
+    @JvmStatic
+    var upDownSplitY = 0f
+        private set
+
+    /** 上下分屏内容与分割线的间距 */
+    @JvmStatic
+    var upDownMargin = 0f
         private set
 
     @JvmStatic
@@ -340,6 +355,10 @@ object ChapterProvider {
                         && ReadBook.pageAnim() != 3
             }
         }
+        //上下动画优先于双页设置：冲突时以上下动画为准
+        if (ReadBook.pageAnim() == PageAnim.upDownPageAnim) {
+            doublePage = false
+        }
 
         if (viewWidth <= 0 || viewHeight <= 0) {
             return
@@ -371,6 +390,11 @@ object ChapterProvider {
             visibleBottom.toFloat() + 10f.dpToPx() //下划线最远10dp
         )
 
+        //上下分屏：可见区域对半分，内容与分割线保持 upDownMargin 间距
+        val isUpDown = ReadBook.pageAnim() == PageAnim.upDownPageAnim
+        upDownPage = isUpDown && !doublePage
+        upDownSplitY = if (upDownPage) visibleHeight / 2f else 0f
+        upDownMargin = if (upDownPage) 10.dpToPx().toFloat() else 0f
     }
 
     private fun setFallbackLayout() {

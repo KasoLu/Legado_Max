@@ -13,7 +13,9 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
     private val lazyLoadingTip = appCtx.getString(R.string.next_page_lazy_loading)
 
     private fun lazyLoadingPage(title: String): TextPage {
-        return TextPage(text = lazyLoadingTip, title = title).format()
+        // 懒加载页高度设为整屏，滚动逻辑把它当一整屏
+        // 懒加载页设为消息页：format() 自动居中+整屏高，上下分屏整屏展示不分割
+        return TextPage(text = lazyLoadingTip, title = title).apply { isLazyLoading = true; isMsgPage = true }.format()
     }
 
     override fun hasPrev(): Boolean = with(dataSource) {
@@ -100,9 +102,9 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
             }
             currentChapter?.let {
                 return@with it.getPage(pageIndex)
-                    ?: TextPage(title = it.title).apply { textChapter = it }.format()
+                    ?: TextPage(title = it.title).apply { textChapter = it; isLazyLoading = true }.format()
             }
-            return TextPage().format()
+            return TextPage().apply { isLazyLoading = true }.format()
         }
 
     override val nextPage: TextPage
@@ -114,7 +116,7 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
                 val pageIndex = pageIndex
                 if (pageIndex < it.pageSize - 1) {
                     return@with it.getPage(pageIndex + 1)?.removePageAloudSpan()
-                        ?: TextPage(title = it.title).format()
+                        ?: TextPage(title = it.title).apply { isLazyLoading = true }.format()
                 }
                 if (it.useLazyLoading && it.lazyContent?.isAnyPageLoading() == true) {
                     return@with lazyLoadingPage(it.title)
@@ -122,10 +124,10 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
                 if (it.isFullyLoaded()) {
                     nextChapter?.let { next ->
                         return@with next.getPage(0)?.removePageAloudSpan()
-                            ?: TextPage(title = next.title).format()
+                            ?: TextPage(title = next.title).apply { isLazyLoading = true }.format()
                     }
                 }
-                return@with TextPage(title = it.title).format()
+                return@with TextPage(title = it.title).apply { isLazyLoading = true }.format()
             }
             return TextPage().format()
         }
@@ -139,17 +141,17 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
                 val pageIndex = pageIndex
                 if (pageIndex > 0) {
                     return@with it.getPage(pageIndex - 1)?.removePageAloudSpan()
-                        ?: TextPage(title = it.title).format()
+                        ?: TextPage(title = it.title).apply { isLazyLoading = true }.format()
                 }
                 if (!it.isCompleted) {
-                    return@with TextPage(title = it.title).format()
+                    return@with TextPage(title = it.title).apply { isLazyLoading = true }.format()
                 }
             }
             prevChapter?.let {
                 return@with it.lastPage?.removePageAloudSpan()
-                    ?: TextPage(title = it.title).format()
+                    ?: TextPage(title = it.title).apply { isLazyLoading = true }.format()
             }
-            return TextPage().format()
+            return TextPage().apply { isLazyLoading = true }.format()
         }
 
     override val nextPlusPage: TextPage
@@ -158,7 +160,7 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
                 val pageIndex = pageIndex
                 if (pageIndex < it.pageSize - 2) {
                     return@with it.getPage(pageIndex + 2)?.removePageAloudSpan()
-                        ?: TextPage(title = it.title).format()
+                        ?: TextPage(title = it.title).apply { isLazyLoading = true }.format()
                 }
                 if (it.useLazyLoading && it.lazyContent?.isAnyPageLoading() == true) {
                     return@with lazyLoadingPage(it.title)
@@ -167,14 +169,14 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
                     nextChapter?.let { nc ->
                         if (pageIndex < it.pageSize - 1) {
                             return@with nc.getPage(0)?.removePageAloudSpan()
-                                ?: TextPage(title = nc.title).format()
+                                ?: TextPage(title = nc.title).apply { isLazyLoading = true }.format()
                         }
                         return@with nc.getPage(1)?.removePageAloudSpan()
-                            ?: TextPage(text = keepSwipeTip).format()
+                            ?: TextPage(text = keepSwipeTip).apply { isLazyLoading = true }.format()
                     }
                 }
-                return@with TextPage(title = it.title).format()
+                return@with TextPage(title = it.title).apply { isLazyLoading = true }.format()
             }
-            return TextPage().format()
+            return TextPage().apply { isLazyLoading = true }.format()
         }
 }

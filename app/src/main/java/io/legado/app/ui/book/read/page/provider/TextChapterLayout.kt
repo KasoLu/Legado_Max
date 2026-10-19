@@ -76,6 +76,8 @@ import io.legado.app.utils.getPrefBoolean
 import splitties.init.appCtx
 import io.legado.app.ui.book.read.page.entities.column.LinkAnchorColumn
 import io.legado.app.utils.LinkAnchor
+import io.legado.app.utils.MD5Utils
+import java.io.File
 
 class TextChapterLayout(
     scope: CoroutineScope,
@@ -115,6 +117,15 @@ class TextChapterLayout(
 
     private val viewWidth = ChapterProvider.viewWidth
     private val doublePage = ChapterProvider.doublePage
+    /** 上下分屏：可见区域对半分，上盒子底边 = splitY - margin，下盒子底边 = visibleHeight */
+    private val upDownPage = ChapterProvider.upDownPage
+    private val upDownSplitY = ChapterProvider.upDownSplitY
+    private val upDownMargin = ChapterProvider.upDownMargin
+    /** 上下分屏：单个半屏盒子的可用高度 */
+    private val upDownBoxHeight get() =
+        if (upDownPage) upDownSplitY - upDownMargin else visibleHeight.toFloat()
+    /** 上下分屏：每节第一行的起始 y（顶部 padding，与底部 10dp 一致），其他模式为 0 */
+    private val upDownDurYStart get() = if (upDownPage) upDownMargin else 0f
     private val indentCharWidth = ChapterProvider.indentCharWidth
     private val stringBuilder = StringBuilder()
 
@@ -193,7 +204,17 @@ class TextChapterLayout(
                 val bookSource = book.getBookSource() ?: return@launch
                 BookHelp.saveImages(bookSource, book, bookChapter, bookContent.toString())
             }
-            getTextChapter(book, bookChapter, displayTitle, bookContent)
+            val cachedPages = TextLayoutCache.load(cacheKey(), cacheFile())
+            if (cachedPages != null) {
+                cachedPages.forEach { deliverCachedPage(it) }
+                onCompleted()
+            } else {
+                getTextChapter(book, bookChapter, displayTitle, bookContent)
+                // 排版成功完成后落盘缓存；懒加载章节内容不完整，不保存
+                if (!textChapter.useLazyLoading) {
+                    TextLayoutCache.save(cacheKey(), cacheFile(), textPages)
+                }
+            }
         }.onError {
             exception = it
             onException(it)
@@ -210,8 +231,82 @@ class TextChapterLayout(
         listener = null
     }
 
+    /** 本章排版缓存文件 */
+    fun cacheFile(): File = TextLayoutCache.cacheFile(book, bookChapter.index)
+
+    /**
+     * 排版缓存 key：内容哈希 + 所有影响排版结果的设置指纹。
+     * 任何一项变化都会导致 key 不同 → 缓存未命中 → 重新排版。
+     */
+    fun cacheKey(): String = buildString {
+        append("1|")
+        append(MD5Utils.md5Encode(bookContent.toString())).append('|')
+        append(bookChapter.index).append('|')
+        append(displayTitle).append('|')
+        append(ChapterProvider.visibleWidth).append('|')
+        append(ChapterProvider.visibleHeight).append('|')
+        append(ChapterProvider.paddingLeft).append('|')
+        append(ChapterProvider.paddingRight).append('|')
+        append(ChapterProvider.paddingTop).append('|')
+        append(ChapterProvider.lineSpacingExtra).append('|')
+        append(ChapterProvider.paragraphSpacing).append('|')
+        append(ChapterProvider.titleTopSpacing).append('|')
+        append(ChapterProvider.titleBottomSpacing).append('|')
+        append(ChapterProvider.doublePage).append('|')
+        append(contentPaint.textSize).append('|')
+        append(contentPaint.letterSpacing).append('|')
+        append(contentPaint.wordSpacing).append('|')
+        append(ReadBookConfig.paragraphIndent).append('|')
+        append(ReadBookConfig.titleMode).append('|')
+        append(ReadBookConfig.useZhLayout).append('|')
+        append(ReadBookConfig.strictCharLayout).append('|')
+        append(ReadBookConfig.textFullJustify).append('|')
+        append(ReadBookConfig.letterSpacing).append('|')
+        append(ReadBookConfig.textFont).append('|')
+        append(ReadBookConfig.textBold).append('|')
+        append(ReadBookConfig.titleBold).append('|')
+        append(ReadBookConfig.titleSize).append('|')
+        append(bookContent.sameTitleRemoved).append('|')
+        append(AppConfig.adaptSpecialStyle).append('|')
+        append(book.getImageStyle()).append('|')
+        append(book.getPageAnim()).append('|')
+        append(compiledHighlightRules.joinToString(",") {
+            it.rule.pattern + it.rule.textColor + it.rule.underlineMode +
+                it.rule.underlineColor + it.rule.bgImage
+        }.hashCode())
+    }
+
+    /**
+     * 投递缓存反序列化出的页面，行为与 onPageCompleted 一致
+     * （不含 pendingTextPage 状态重置——缓存路径不涉及续排状态）
+     */
+    private fun deliverCachedPage(textPage: TextPage) {
+        textPage.index = textPages.size
+        textPage.chapterIndex = bookChapter.index
+        textPage.chapterSize = chaptersSize
+        textPage.title = displayTitle
+        textPage.doublePage = doublePage
+        textPage.upDownPage = upDownPage
+        textPage.paddingTop = paddingTop
+        textPage.isCompleted = true
+        textPage.textChapter = textChapter
+        // 注意：不调用 upLinesPosition()——底部对齐已在排版阶段应用，
+        // 缓存里的几何数据是最终值，再调用会二次拉伸行位置
+        textPage.upRenderHeight()
+        textPages.add(textPage)
+        channel.trySend(textPage)
+        try {
+            listener?.onLayoutPageCompleted(textPages.lastIndex, textPage)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            AppLog.put("调用布局进度监听回调出错\n${e.localizedMessage}", e)
+        }
+    }
+
     fun appendContent(newContents: List<String>) {
         if (newContents.isEmpty()) return
+        // 懒加载追加内容改变了排版结果，失效本章缓存
+        TextLayoutCache.deleteCache(book, bookChapter.index)
         
         kotlinx.coroutines.GlobalScope.launch(IO) {
             try {
@@ -453,7 +548,7 @@ class TextChapterLayout(
         
         pendingTextPage = TextPage()
         stringBuilder.clear()
-        durY = 0f
+        durY = upDownDurYStart
         absStartX = paddingLeft
     }
 
@@ -464,6 +559,7 @@ class TextChapterLayout(
         textPage.chapterSize = chaptersSize
         textPage.title = displayTitle
         textPage.doublePage = doublePage
+        textPage.upDownPage = upDownPage
         textPage.paddingTop = paddingTop
         textPage.isCompleted = true
         textPage.textChapter = textChapter
@@ -832,7 +928,7 @@ class TextChapterLayout(
         onPageCompleted()
         pendingTextPage = TextPage()
         stringBuilder.clear()
-        durY = 0f
+        durY = upDownDurYStart
         absStartX = paddingLeft
         onCompleted()
     }
@@ -849,15 +945,111 @@ class TextChapterLayout(
         click: String?,
         isAnimated: Boolean = false
     ) {
+        var afterSpacing = paragraphSpacing
         if (size.width > 0 && size.height > 0) {
             prepareNextPageIfNeed(durY)
             var height = size.height
             var width = size.width
-            when (imageStyle?.uppercase()) {
-                Book.imgStyleFull -> {
-                    width = visibleWidth
-                    height = size.height * visibleWidth / size.width
-                    if (pageAnim != PageAnim.scrollPageAnim && height > visibleHeight - durY) {
+            var imageFadeBottom = false
+            if (upDownPage) {
+                //上下分屏：宽度照旧，高度超过半屏盒子时在盒子底端截断+渐变
+                val boxBottom =
+                    if (durY < upDownSplitY) upDownSplitY - upDownMargin else visibleHeight.toFloat()
+                when (imageStyle?.uppercase()) {
+                    Book.imgStyleFull, Book.imgStyleSingle -> {
+                        width = visibleWidth
+                        var h = size.height * visibleWidth.toFloat() / size.width
+                        val isFullPage = pendingTextPage.lineSize == 0 && durY == upDownDurYStart &&
+                                h >= visibleHeight.toFloat()
+                        when {
+                            isFullPage -> {
+                                //封面整页：占满全屏，不拆分不画分割线
+                                if (h > visibleHeight.toFloat()) {
+                                    width = width * visibleHeight / h.toInt()
+                                }
+                                h = visibleHeight.toFloat()
+                            }
+
+                            h > upDownBoxHeight -> {
+                                //超过半屏盒：不压扁(保持比例与可点击)，保留原始高度，裁剪截断到盒底，盒底渐隐
+                                imageFadeBottom = true
+                            }
+
+                            else -> {
+                                prepareNextPageIfNeed(durY + h)
+                                if (imageStyle?.uppercase() == Book.imgStyleSingle && h < upDownBoxHeight) {
+                                    //单图样式：在半屏盒子内垂直居中
+                                    val boxTop =
+                                        if (durY < upDownSplitY) 0f else upDownSplitY + upDownMargin
+                                    durY = boxTop + (upDownBoxHeight - h) / 2f
+                                }
+                            }
+                        }
+                        height = h.toInt()
+                    }
+
+                    else -> {
+                        var h = size.height.toFloat()
+                        if (size.width > visibleWidth) {
+                            h = size.height * visibleWidth.toFloat() / size.width
+                            width = visibleWidth
+                        }
+                        val isFullPage = pendingTextPage.lineSize == 0 && durY == upDownDurYStart &&
+                                h >= visibleHeight.toFloat()
+                        when {
+                            isFullPage -> {
+                                if (h > visibleHeight.toFloat()) {
+                                    width = width * visibleHeight / h.toInt()
+                                }
+                                h = visibleHeight.toFloat()
+                            }
+
+                            h > upDownBoxHeight -> {
+                                imageFadeBottom = true
+                            }
+
+                            else -> prepareNextPageIfNeed(durY + h)
+                        }
+                        height = h.toInt()
+                    }
+                }
+            } else {
+                when (imageStyle?.uppercase()) {
+                    Book.imgStyleFull -> {
+                        width = visibleWidth
+                        height = size.height * visibleWidth / size.width
+                        if (pageAnim != PageAnim.scrollPageAnim && height > visibleHeight - durY) {
+                            if (height > visibleHeight) {
+                                width = width * visibleHeight / height
+                                height = visibleHeight
+                            }
+                            prepareNextPageIfNeed(durY + height)
+                        }
+                    }
+
+                    Book.imgStyleSingle -> {
+                        width = visibleWidth
+                        height = size.height * visibleWidth / size.width
+                        if (height > visibleHeight) {
+                            width = width * visibleHeight / height
+                            height = visibleHeight
+                        }
+                        if (durY > 0f) {
+                            prepareNextPageIfNeed()
+                        }
+
+                        // 图片竖直方向居中：调整 Y 坐标
+                        if (height < visibleHeight) {
+                            val adjustHeight = (visibleHeight - height) / 2f
+                            durY = adjustHeight // 将 Y 坐标设置为居中位置
+                        }
+                    }
+
+                    else -> {
+                        if (size.width > visibleWidth) {
+                            height = size.height * visibleWidth / size.width
+                            width = visibleWidth
+                        }
                         if (height > visibleHeight) {
                             width = width * visibleHeight / height
                             height = visibleHeight
@@ -865,42 +1057,16 @@ class TextChapterLayout(
                         prepareNextPageIfNeed(durY + height)
                     }
                 }
-
-                Book.imgStyleSingle -> {
-                    width = visibleWidth
-                    height = size.height * visibleWidth / size.width
-                    if (height > visibleHeight) {
-                        width = width * visibleHeight / height
-                        height = visibleHeight
-                    }
-                    if (durY > 0f) {
-                        prepareNextPageIfNeed()
-                    }
-
-                    // 图片竖直方向居中：调整 Y 坐标
-                    if (height < visibleHeight) {
-                        val adjustHeight = (visibleHeight - height) / 2f
-                        durY = adjustHeight // 将 Y 坐标设置为居中位置
-                    }
-                }
-
-                else -> {
-                    if (size.width > visibleWidth) {
-                        height = size.height * visibleWidth / size.width
-                        width = visibleWidth
-                    }
-                    if (height > visibleHeight) {
-                        width = width * visibleHeight / height
-                        height = visibleHeight
-                    }
-                    prepareNextPageIfNeed(durY + height)
-                }
             }
             val textLine = TextLine(isImage = true)
             textLine.text = " "
             textLine.lineTop = durY + paddingTop
             durY += height
             textLine.lineBottom = durY + paddingTop
+            textLine.hasFadeBottom = imageFadeBottom
+            if (upDownPage) {
+                textLine.isTopLine = (durY - height) < upDownSplitY
+            }
             val (start, end) = if (visibleWidth > width) {
                 when (imageStyle?.uppercase()) {
                     "RIGHT" -> Pair(visibleWidth - width, visibleWidth)
@@ -925,8 +1091,10 @@ class TextChapterLayout(
             calcTextLinePosition(textPages, textLine, stringBuilder.length)
             stringBuilder.append(" ") // 确保翻页时索引计算正确
             pendingTextPage.addLine(textLine)
+            // 全宽图片(神评/本章说等整行入口, SINGLE/FULL 样式)之后额外加半行行高间距(双页模式除外)；普通非全宽图片保持只加段距
+            if (!doublePage && width >= visibleWidth) afterSpacing = paragraphSpacing + 5
         }
-        durY += textHeight * paragraphSpacing / 10f
+        durY += textHeight * afterSpacing / 10f
     }
 
     /**
@@ -989,8 +1157,18 @@ class TextChapterLayout(
             textLine.startX = absStartX + lineLeft //x坐标
             val mLineTop = staticLayout.getLineTop(lineIndex).toFloat()
             val mLineBottom = staticLayout.getLineBottom(lineIndex).toFloat()
-            val lineHeight = mLineBottom - mLineTop
-            prepareNextPageIfNeed(durY + lineHeight)
+            val mLineHeight = mLineBottom - mLineTop
+            var lineHeight = mLineHeight
+            var htmlFadeBottom = false
+            if (upDownPage && lineHeight > upDownBoxHeight) {
+                //超过半屏的HTML块(作者说/章节评论等)：截断至盒子底端+渐变
+                val boxBottom =
+                    if (durY < upDownSplitY) upDownSplitY - upDownMargin else visibleHeight.toFloat()
+                lineHeight = boxBottom - durY
+                htmlFadeBottom = true
+            } else {
+                prepareNextPageIfNeed(durY + lineHeight)
+            }
             textLine.upTopBottom(durY, lineHeight, textPaint.fontMetrics) //y坐标
 
             val columns = mutableListOf<BaseColumn>()
@@ -1153,6 +1331,10 @@ class TextChapterLayout(
             stringBuilder.append(lineText)
             val textPage = pendingTextPage
             textPage.addLine(textLine)
+            textLine.hasFadeBottom = htmlFadeBottom
+            if (upDownPage) {
+                textLine.isTopLine = (durY - lineHeight) < upDownSplitY
+            }
             durY += lineHeight * lineSpacingExtra //行距
             if (textPage.height < durY) {
                 textPage.height = durY
@@ -1470,7 +1652,7 @@ class TextChapterLayout(
             emptyContent && textPages.isEmpty() -> {
                 val textPage = pendingTextPage
                 if (textPage.lineSize == 0) {
-                    val ty = (visibleHeight - layout.lineCount * textHeight) / 2
+                    val ty = (upDownBoxHeight - layout.lineCount * textHeight) / 2
                     if (ty > titleTopSpacing) ty else titleTopSpacing.toFloat()
                 } else {
                     var textLayoutHeight = layout.lineCount * textHeight
@@ -1490,7 +1672,7 @@ class TextChapterLayout(
             isTitle && textPages.isEmpty() && pendingTextPage.lines.isEmpty() -> {
                 when (imageStyle?.uppercase()) {
                     Book.imgStyleSingle -> {
-                        val ty = (visibleHeight - layout.lineCount * textHeight) / 2
+                        val ty = (upDownBoxHeight - layout.lineCount * textHeight) / 2
                         if (ty > titleTopSpacing) ty else titleTopSpacing.toFloat()
                     }
 
@@ -1563,6 +1745,9 @@ class TextChapterLayout(
             }
             if (doublePage) {
                 textLine.isLeftLine = absStartX < viewWidth / 2
+            }
+            if (upDownPage) {
+                textLine.isTopLine = durY < upDownSplitY
             }
             calcTextLinePosition(textPages, textLine, stringBuilder.length)
             stringBuilder.append(lineText)
@@ -1862,6 +2047,28 @@ class TextChapterLayout(
     }
 
     private suspend fun prepareNextPageIfNeed(requestHeight: Float = -1f) {
+        if (upDownPage) {
+            // 上下分屏：一页 = 上半块(分割线以上)，排满即翻页；下半区显示下一页预览
+            val textPage = pendingTextPage
+            val boxBottom = if (isFullPageImage(textPage)) {
+                visibleHeight.toFloat()
+            } else {
+                upDownSplitY - upDownMargin
+            }
+            if (requestHeight >= boxBottom || requestHeight == -1f) {
+                if (textPage.height < durY) {
+                    textPage.height = durY
+                }
+                textPage.leftLineSize = textPage.lineSize
+                textPage.text = stringBuilder.toString()
+                currentCoroutineContext().ensureActive()
+                onPageCompleted()
+                pendingTextPage = TextPage()
+                stringBuilder.clear()
+                durY = upDownDurYStart
+            }
+            return
+        }
         if (requestHeight > visibleHeight || requestHeight == -1f) {
             val textPage = pendingTextPage
             // 双页的 durY 不正确，可能会小于实际高度
@@ -1885,8 +2092,21 @@ class TextChapterLayout(
                 stringBuilder.clear()
                 absStartX = paddingLeft
             }
-            durY = 0f
+            durY = upDownDurYStart
         }
+    }
+
+    /**
+     * 上下分屏：判断 pendingTextPage 是否为整页全屏图（封面页），
+     * 这类页面不拆分上下、不画分割线
+     */
+    private fun isFullPageImage(textPage: TextPage): Boolean {
+        if (!upDownPage) return false
+        // 懒加载页直接当整页，排满整屏不被分割
+        if (textPage.isLazyLoading) return true
+        if (textPage.lineSize != 1) return false
+        val line = textPage.lines[0]
+        return line.isImage && line.height >= visibleHeight
     }
 
     private fun allocateFloatArray(size: Int): FloatArray {

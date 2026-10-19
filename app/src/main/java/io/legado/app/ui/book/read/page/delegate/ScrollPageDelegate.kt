@@ -5,6 +5,7 @@ import android.view.MotionEvent
 import android.view.VelocityTracker
 import io.legado.app.data.entities.Book
 import io.legado.app.help.book.isImage
+import io.legado.app.help.config.AppConfig
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.book.read.page.ReadView
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
@@ -68,6 +69,7 @@ class ScrollPageDelegate(readView: ReadView) : PageDelegate(readView) {
 
     override fun onScroll() {
         curPage.scroll((touchY - lastY).toInt())
+        checkPreRenderNextPage()
         checkLazyPrefetch()
     }
 
@@ -75,6 +77,32 @@ class ScrollPageDelegate(readView: ReadView) : PageDelegate(readView) {
         // nothing
     }
     
+    /** 已提交"预渲染下一页"任务的当前页索引，避免重复提交 */
+    private var preRenderSubmittedPageIndex = -1
+
+    /**
+     * 滚动预渲染：优化渲染模式下，当前页滚动过半时提前提交渲染任务，
+     * 让后台线程录好下一页的画布。否则跨页瞬间新页 recorder 还是脏的，
+     * 首个帧会在 UI 线程同步录制整页（掉帧），或被后台录制锁阻塞。
+     */
+    private fun checkPreRenderNextPage() {
+        if (!AppConfig.optimizeRender) return
+        if (!readView.isScroll) return
+
+        val pageOffset = curPage.getPageOffset()
+        val textPage = curPage.textPage
+        val pageHeight = textPage.height
+
+        if (pageHeight <= 0) return
+
+        val progress = (-pageOffset.toFloat() / pageHeight).coerceIn(0f, 1f)
+        if (progress < 0.5f) return
+        if (preRenderSubmittedPageIndex == textPage.index) return
+
+        preRenderSubmittedPageIndex = textPage.index
+        curPage.submitRenderTask()
+    }
+
     private fun checkLazyPrefetch() {
         val textChapter = ReadBook.curTextChapter ?: return
         if (!textChapter.useLazyLoading) return
@@ -96,17 +124,16 @@ class ScrollPageDelegate(readView: ReadView) : PageDelegate(readView) {
         //多点触控时即最后按下的手指产生的事件点
         val pointX = event.getX(event.pointerCount - 1)
         val pointY = event.getY(event.pointerCount - 1)
-        if (isMoved || readView.isLongScreenShot()) {
-            readView.setTouchPoint(pointX, pointY, false)
-        }
         if (!isMoved) {
             val deltaX = (pointX - startX).toInt()
             val deltaY = (pointY - startY).toInt()
             val distance = deltaX * deltaX + deltaY * deltaY
             isMoved = distance > slopSquare
-            if (isMoved) {
-                readView.setStartPoint(event.x, event.y, false)
-            }
+            // 越过阈值不再重置起点（原 setStartPoint 会吞掉本次事件的位移，
+            // 内容要多等一个事件才开始动）：首次越界事件直接产生位移，立即跟随手指
+        }
+        if (isMoved || readView.isLongScreenShot()) {
+            readView.setTouchPoint(pointX, pointY, false)
         }
         if (isMoved) {
             isRunning = true
