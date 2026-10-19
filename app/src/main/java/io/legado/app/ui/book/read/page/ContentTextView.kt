@@ -137,7 +137,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private fun drawPage(canvas: Canvas) {
         if (ChapterProvider.upDownPage && !isFullPageText(textPage) && !textPage.isLazyLoading) {
             // 连续文字卷轴：上截+当前截+下截+下下截，段间画分割线(压痕)，整条一起平移
-            val rel = relativeOffset(0)
+            val rel = relativeOffset(0) + upDownShiftY
             // 节距 = 一节(严格半屏)；16dp 是节内"内容到分割线"的间距，不是节与节之间的间距
             val gap = ChapterProvider.upDownSplitY
             if (pageFactory.hasPrev()) {
@@ -870,11 +870,23 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     private fun touchOffset(relativePos: Int): Float {
         return if (ChapterProvider.upDownPage) {
-            pageOffset + relativePos * ChapterProvider.upDownSplitY
+            pageOffset + upDownShiftY + relativePos * ChapterProvider.upDownSplitY
         } else {
             relativeOffset(relativePos)
         }
     }
+    /**
+     * 上下分屏 viewport 下移量 = 当前页第一行文本的行高 + 2 倍分割线内边距(upDownMargin)。
+     * 加 1 倍 padding 后顶部是完整一行 + 空隙；再加 1 倍，尾行上方还多出一段边距，
+     * 顶部分割线距正文顶部一行高 + 2*padding，观感上尾行不与屏幕边缘相贴。
+     * 内容与分割线整体下移该值（渲染基准与触摸命中同量偏移），滚动步长与分页逻辑不变。
+     */
+    private val upDownShiftY: Float
+        get() = if (ChapterProvider.upDownPage) {
+            (textPage.lines.firstOrNull { !it.isImage }?.height
+                ?: textPage.lines.firstOrNull()?.height
+                ?: 0f) + 2f * ChapterProvider.upDownMargin
+        } else 0f
 
     fun relativePage(relativePos: Int): TextPage {
         return when (relativePos) {
