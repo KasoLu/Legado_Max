@@ -756,8 +756,6 @@
     <string name="contributors_summary">gedoor,Invinciblelee,Xwite etc. Para mais detalhes vá ao Github</string>
     <string name="clear_cache_summary">Limpar o cache dos livros e fontes baixados</string>
     <string name="default_cover">Capa padrão</string>
-    <string name="restore_ignore">Lista de ignorados</string>
-    <string name="restore_ignore_summary">Ignore alguns conteúdos durante restauração</string>
     <string name="read_config">Configuração da interface de leitura</string>
     <string name="group_name">Nome de grupo</string>
     <string name="note_content">Seção de observações</string>

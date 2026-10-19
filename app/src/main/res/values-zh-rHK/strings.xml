@@ -753,8 +753,6 @@
     <string name="contributors_summary">gedoor,Invinciblelee,Xwite等,詳情請在github中查看</string>
     <string name="clear_cache_summary">清除已下載書籍和字體緩存</string>
     <string name="default_cover">默認封面</string>
-    <string name="restore_ignore">恢復忽略列表</string>
-    <string name="restore_ignore_summary">恢復時忽略一些內容不恢復,方便不同手機配置不同</string>
     <string name="read_config">閱讀界面設置</string>
     <string name="rule_image_style">圖片樣式 (imageStyle)</string>
     <string name="rule_replace_regex">替換規則 (replaceRegex)</string>
@@ -1241,8 +1239,8 @@
     <string name="auto_update">自動更新</string>
     <string name="auto_update_summary">每天自動檢查軟件是否有更新</string>
     <string name="auto_wrap">自動換行</string>
-    <string name="backup_selector">備份選擇器</string>
-    <string name="backup_selector_summary">選擇要備份的資料</string>
+    <string name="backup_selector">備份/還原內容</string>
+    <string name="backup_selector_summary">備份與還原共用的內容勾選（持久化，WebDAV 自動同步遵循該設置）</string>
     <string name="backward_pre_download">向前預下載</string>
     <string name="backward_pre_download_s">預先下載前面的章節</string>
     <string name="book_cache_selector">書籍快取選擇器</string>
@@ -1325,8 +1323,6 @@
     <string name="query_content">查詢網頁內容</string>
     <string name="read_aloud_floating_ui_summary">朗讀時顯示懸浮控制介面</string>
     <string name="record_url_switch">開啟 URL 記錄</string>
-    <string name="restore_show_selector">還原時顯示選擇器</string>
-    <string name="restore_show_selector_summary">還原前選擇要還原的資料</string>
     <string name="search_help">搜尋說明</string>
     <string name="show_read_record_in_book_info">顯示閱讀記錄</string>
     <string name="show_source_comment">顯示源註釋</string>

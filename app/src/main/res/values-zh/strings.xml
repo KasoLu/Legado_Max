@@ -901,10 +901,6 @@
     <string name="contributors_summary">gedoor、Invinciblelee 和 Xwite 等，详情请在 GitHub 中查看</string>
     <string name="clear_cache_summary">清除已下载书籍和字体缓存</string>
     <string name="default_cover">默认封面</string>
-    <string name="restore_ignore">恢复忽略列表</string>
-    <string name="restore_ignore_summary">恢复时忽略一些内容不恢复，方便不同手机配置不同</string>
-    <string name="restore_show_selector">恢复显示选择菜单</string>
-    <string name="restore_show_selector_summary">恢复时显示文件选择对话框，可选择要恢复的内容</string>
     <string name="select_files_to_restore">选择恢复文件</string>
     <string name="read_config">阅读界面设置</string>
     <string name="group_name">分组名称</string>
@@ -1322,8 +1318,8 @@
     <string name="set_local_password_summary">本地密码用来对备份的敏感信息加密和解密,如需在不同设备之间同步,本地密码需一致.</string>
     <string name="only_latest_backup_t">仅保留最新备份</string>
     <string name="only_latest_backup_s">本地备份仅保留最新备份文件</string>
-    <string name="backup_selector">备份选择器</string>
-    <string name="backup_selector_summary">选择需要备份的内容</string>
+    <string name="backup_selector">备份/恢复内容</string>
+    <string name="backup_selector_summary">备份与恢复共用的内容勾选（持久化，WebDAV 自动同步遵循该设置）</string>
     <string name="book_cache_selector">书籍缓存选择</string>
     <string name="book_cache_selector_summary">选择要备份缓存的书籍</string>
     <string name="view_backup_info_t">查看备份信息</string>
@@ -1671,10 +1667,8 @@
     <string name="bcs_deselect_all">取消全选</string>
 
     <!-- File Validation Dialog -->
-    <string name="fvd_title">选择要恢复的文件</string>
+    <string name="fvd_title">备份/恢复内容选择</string>
     <string name="fvd_detect_format">检测格式</string>
-    <string name="fvd_select_all">全选</string>
-    <string name="fvd_deselect_all">全不选</string>
     <string name="fvd_valid">有效</string>
     <string name="fvd_invalid">无效</string>
     <string name="fvd_validating">验证中</string>

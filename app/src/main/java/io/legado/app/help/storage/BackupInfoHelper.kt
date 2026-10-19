@@ -113,19 +113,29 @@ object BackupInfoHelper {
         return displayNameMap[fileName] ?: fileName
     }
 
-    private val selectorFileAliases = mapOf(
-        ReadBookConfig.shareConfigFileName to "readShareConfig.json",
-        DirectLinkUpload.ruleFileName to "directLinkRule.json",
-        BookCover.configFileName to "coverRule.json",
-        CoverGalleryRepository.backupDirName to CoverGalleryRepository.backupDirName
-    )
 
+    /**
+     * 备份信息与恢复信息共用同一状态源（SyncSelection），保证两侧完全对齐。
+     */
     fun getBackupOverview(): BackupOverview {
-        return buildOverview(::isFileSelectedForBackup)
+        return buildOverview(::isFileIncluded)
     }
 
     fun getRestoreOverview(): BackupOverview {
-        return buildOverview(::isFileEnabledForRestore)
+        return buildOverview(::isFileIncluded)
+    }
+
+    /** 文件/显示名 -> 所属叶子的勾选状态 */
+    private fun isFileIncluded(fileName: String): Boolean {
+        // 第十六轮：阅读样式条目已整体移除——阅读背景（backgroundImages）永不参与多机同步
+        // （旧备份中若含该目录，在备份/恢复信息面板中显示为未选中）
+        if (fileName == "backgroundImages") return false
+        val leafKey = when (fileName) {
+            "themeBackgroundImages" -> SyncSelection.LEAF_THEME
+            "readRecordSession.json" -> SyncSelection.LEAF_READ_RECORD
+            else -> SyncSelection.leafByFile(fileName)?.key
+        } ?: return true
+        return SyncSelection.isSelected(leafKey)
     }
 
     private fun buildOverview(isSelected: (String) -> Boolean): BackupOverview {
@@ -221,10 +231,11 @@ object BackupInfoHelper {
     }
 
     private fun addBackgroundItems(addItem: (String, Long) -> Unit) {
-        val totalBgSize = Backup.getBackgroundImageFiles()
+        // 第十六轮：阅读样式条目已整体移除——阅读背景（backgroundImages）不再参与多机同步
+        val themeBgSize = Backup.getThemeBackgroundImageFiles()
             .distinctBy { it.absolutePath }
             .sumOf { it.length() }
-        addItem("backgroundImages", totalBgSize)
+        addItem("themeBackgroundImages", themeBgSize)
     }
 
     private fun addCoverGalleryItem(addItem: (String, Long) -> Unit) {
@@ -237,37 +248,7 @@ object BackupInfoHelper {
         addItem(CoverGalleryRepository.backupDirName, imageSize + estimatedDataSize)
     }
 
-    private fun isFileSelectedForBackup(fileName: String): Boolean {
-        return when (fileName) {
-            "book_cache",
-            "bookChapterCache.json",
-            "bookCacheBooks.json",
-            "bookCacheIndex.json" -> BackupSelectorConfig.isSelected("bookCache")
 
-            "backgroundImages" -> BackupSelectorConfig.isSelected("backgroundImages")
-            else -> {
-                val key = BackupSelectorConfig.allItems.find {
-                    it.fileName == fileName || it.fileName == selectorFileAliases[fileName]
-                }?.key ?: return true
-                BackupSelectorConfig.isSelected(key)
-            }
-        }
-    }
-
-    private fun isFileEnabledForRestore(fileName: String): Boolean {
-        return when (fileName) {
-            ReadBookConfig.configFileName,
-            ReadBookConfig.shareConfigFileName,
-            "backgroundImages" -> !BackupConfig.ignoreReadConfig
-
-            "book_cache",
-            "bookChapterCache.json",
-            "bookCacheBooks.json",
-            "bookCacheIndex.json" -> !BackupConfig.ignoreBookCache
-
-            else -> true
-        }
-    }
 
     fun categorizeItems(items: List<BackupFileInfo>, onlySelected: Boolean = false): List<CategoryInfo> {
         val filteredItems = if (onlySelected) items.filter { it.selected } else items

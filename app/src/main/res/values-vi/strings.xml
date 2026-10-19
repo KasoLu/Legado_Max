@@ -753,8 +753,6 @@
     <string name="contributors_summary">gedoor, Invinciblelee, Xwite, v.v. Kiểm tra trên github để biết chi tiết</string>
     <string name="clear_cache_summary">Xóa bộ đệm của sách và phông chữ đã tải xuống</string>
     <string name="default_cover">Bìa mặc định</string>
-    <string name="restore_ignore">Danh sách bỏ qua</string>
-    <string name="restore_ignore_summary">Bỏ qua một số nội dung khi khôi phục</string>
     <string name="read_config">Cài đặt giao diện đọc</string>
     <string name="group_name">Tên nhóm</string>
     <string name="note_content">Phần ghi chú</string>

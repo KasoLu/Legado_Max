@@ -755,8 +755,6 @@
     <string name="contributors_summary">gedoor, Invinciblelee, Xwite, etc. Para obtener más detalles, vaya a Github</string>
     <string name="clear_cache_summary">Limpiar la caché de libros y fuentes descargados</string>
     <string name="default_cover">Portada predeterminada</string>
-    <string name="restore_ignore">Lista de descartados</string>
-    <string name="restore_ignore_summary">Ignore parte del contenido durante la restauración</string>
     <string name="read_config">Leer ajustes de interfaz</string>
     <string name="group_name">Nombre del grupo</string>
     <string name="note_content">Sección de notas</string>

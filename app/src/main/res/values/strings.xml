@@ -917,10 +917,6 @@
     <string name="contributors_summary">gedoor,Invinciblelee,Xwite etc. Checking in github for details</string>
     <string name="clear_cache_summary">Clear the cache of the downloaded books and fonts</string>
     <string name="default_cover">Default cover</string>
-    <string name="restore_ignore">Bypass list</string>
-    <string name="restore_ignore_summary">Ignore some contents while restoring</string>
-    <string name="restore_show_selector">Restore selection menu</string>
-    <string name="restore_show_selector_summary">Show file selection dialog before restoring</string>
     <string name="select_files_to_restore">Select restore files</string>
     <string name="read_config">Reading interface settings</string>
     <string name="note_content">Remarks section</string>
@@ -1355,8 +1351,8 @@
     <string name="set_local_password_summary">The local password is used to encrypt and decrypt the sensitive information of the backup, if you need to synchronize between different devices, the local password should be the same.</string>
     <string name="only_latest_backup_t">Keep only the latest backup</string>
     <string name="only_latest_backup_s">Local backup keeps only the latest backup file</string>
-    <string name="backup_selector">Backup Selector</string>
-    <string name="backup_selector_summary">Select items to backup</string>
+    <string name="backup_selector">Backup/Restore Content</string>
+    <string name="backup_selector_summary">Common selection for backup and restore (persisted; WebDAV auto-sync follows this setting)</string>
     <string name="book_cache_selector">Book Cache Selector</string>
     <string name="book_cache_selector_summary">Select books to backup cache</string>
     <string name="view_backup_info_t">View Backup Info</string>
@@ -1862,10 +1858,8 @@
     <string name="bcs_deselect_all">Deselect All</string>
 
     <!-- File Validation Dialog -->
-    <string name="fvd_title">Select Files to Restore</string>
+    <string name="fvd_title">Backup/Restore Content Selection</string>
     <string name="fvd_detect_format">Detect Format</string>
-    <string name="fvd_select_all">Select All</string>
-    <string name="fvd_deselect_all">Deselect All</string>
     <string name="fvd_valid">Valid</string>
     <string name="fvd_invalid">Invalid</string>
     <string name="fvd_validating">Validating</string>

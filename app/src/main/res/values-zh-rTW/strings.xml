@@ -760,8 +760,6 @@
     <string name="contributors_summary">gedoor、Invinciblelee、Xwite等，詳情請在github中查看</string>
     <string name="clear_cache_summary">清除已下載書籍和字體快取</string>
     <string name="default_cover">預設封面</string>
-    <string name="restore_ignore">復原忽略列表</string>
-    <string name="restore_ignore_summary">復原時忽略一些內容不復原，方便不同手機配置不同</string>
     <string name="read_config">閱讀介面設定</string>
     <string name="group_name">分組名稱</string>
     <string name="note_content">備註內容</string>
@@ -1242,8 +1240,8 @@
     <string name="auto_update">自動更新</string>
     <string name="auto_update_summary">每天自動檢查軟體是否有更新</string>
     <string name="auto_wrap">自動換行</string>
-    <string name="backup_selector">備份選擇器</string>
-    <string name="backup_selector_summary">選擇要備份的資料</string>
+    <string name="backup_selector">備份/還原內容</string>
+    <string name="backup_selector_summary">備份與還原共用的內容勾選（持久化，WebDAV 自動同步遵循該設置）</string>
     <string name="backward_pre_download">向前預下載</string>
     <string name="backward_pre_download_s">預先下載前面的章節</string>
     <string name="book_cache_selector">書籍快取選擇器</string>
@@ -1328,8 +1326,6 @@
     <string name="query_content">查詢網頁內容</string>
     <string name="read_aloud_floating_ui_summary">朗讀時顯示懸浮控制介面</string>
     <string name="record_url_switch">開啟 URL 記錄</string>
-    <string name="restore_show_selector">還原時顯示選擇器</string>
-    <string name="restore_show_selector_summary">還原前選擇要還原的資料</string>
     <string name="search_help">搜尋說明</string>
     <string name="show_read_record_in_book_info">顯示閱讀記錄</string>
     <string name="show_source_comment">顯示源註釋</string>
@@ -1478,10 +1474,8 @@
     <string name="bcs_deselect_all">取消全選</string>
 
     <!-- File Validation Dialog -->
-    <string name="fvd_title">選擇要恢復的檔案</string>
+    <string name="fvd_title">備份/還原內容選擇</string>
     <string name="fvd_detect_format">檢測格式</string>
-    <string name="fvd_select_all">全選</string>
-    <string name="fvd_deselect_all">全不選</string>
     <string name="fvd_valid">有效</string>
     <string name="fvd_invalid">無效</string>
     <string name="fvd_validating">驗證中</string>

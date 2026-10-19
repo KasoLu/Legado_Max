@@ -16,7 +16,6 @@ import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.model.BookCover
-import io.legado.app.help.storage.BackupSelectorConfig
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.GSON
 import io.legado.app.utils.LogUtils
@@ -125,106 +124,13 @@ object Backup {
     val zipFilePath = "${appCtx.externalFiles.absolutePath}${File.separator}tmp_backup.zip"
 
     private const val TAG = "Backup"
-    private const val READ_BG_DIR = "bg"
+    private const val READ_BG_DIR = "bg"  // 仅主题/高亮等背景仍在使用该目录命名约定
 
     /** 互斥锁，防止并发备份操作 */
     private val mutex = Mutex()
 
-    /** 备份文件名列表，定义所有需要备份的文件 */
-    private val backupFileNames by lazy {
-        arrayOf(
-            "bookshelf.json",
-            "bookmark.json",
-            "bookGroup.json",
-            "bookSource.json",
-            "rssSources.json",
-            "rssStar.json",
-            "replaceRule.json",
-            HighlightRuleStore.backupFileName,
-            "readRecord.json",
-            "readRecordDetail.json",
-            "searchHistory.json",
-            "txtTocRule.json",
-            "httpTTS.json",
-            "keyboardAssists.json",
-            "dictRule.json",
-            "servers.json",
-            DirectLinkUpload.ruleFileName,
-            ReadBookConfig.configFileName,
-            ReadBookConfig.shareConfigFileName,
-            ThemeConfig.configFileName,
-            BookCover.configFileName,
-            "config.xml",
-            CoverGalleryRepository.backupDirName
-        )
-    }
 
-    /** 获取所有背景图片文件 */
-    fun getBackgroundImageFiles(): List<File> {
-        val files = mutableListOf<File>()
-        
-        // 阅读界面背景图片
-        val bgStrList = ReadBookConfig.getAllPicBgStr()
-        LogUtils.d(TAG, "阅读背景 getAllPicBgStr 返回: $bgStrList")
-        bgStrList.mapNotNull { bg ->
-            LogUtils.d(TAG, "处理阅读背景: $bg")
-            val file = if (bg.contains(File.separator)) {
-                File(bg)
-            } else {
-                appCtx.externalFiles.getFile(READ_BG_DIR, bg)
-            }
-            LogUtils.d(TAG, "阅读背景文件路径: ${file.absolutePath}, 存在: ${file.exists()}, 是文件: ${file.isFile}")
-            file.takeIf { it.exists() && it.isFile }
-        }.let { files.addAll(it) }
-        
-        // 主题背景图片
-        val themeBgPath = appCtx.getPrefString(PreferKey.bgImage)
-        LogUtils.d(TAG, "主题白天背景路径: $themeBgPath")
-        themeBgPath?.let { path ->
-            val file = if (path.startsWith("http")) {
-                val name = ThemeConfig.getUrlToFile(path)
-                appCtx.externalFiles.getFile(PreferKey.bgImage, name)
-            } else if (path.contains(File.separator)) {
-                File(path)
-            } else {
-                appCtx.externalFiles.getFile(PreferKey.bgImage, path)
-            }
-            LogUtils.d(TAG, "主题白天背景文件: ${file.absolutePath}, 存在: ${file.exists()}, 是文件: ${file.isFile}")
-            if (file.exists() && file.isFile) {
-                files.add(file)
-            }
-        }
-        
-        val themeBgNightPath = appCtx.getPrefString(PreferKey.bgImageN)
-        LogUtils.d(TAG, "主题夜间背景路径: $themeBgNightPath")
-        themeBgNightPath?.let { path ->
-            val file = if (path.startsWith("http")) {
-                val name = ThemeConfig.getUrlToFile(path)
-                appCtx.externalFiles.getFile(PreferKey.bgImageN, name)
-            } else if (path.contains(File.separator)) {
-                File(path)
-            } else {
-                appCtx.externalFiles.getFile(PreferKey.bgImageN, path)
-            }
-            LogUtils.d(TAG, "主题夜间背景文件: ${file.absolutePath}, 存在: ${file.exists()}, 是文件: ${file.isFile}")
-            if (file.exists() && file.isFile) {
-                files.add(file)
-            }
-        }
-        
-        return files.distinctBy { it.absolutePath }
-    }
-
-    private fun getReadBackgroundImageFiles(): List<File> {
-        return ReadBookConfig.getAllPicBgStr().mapNotNull { bg ->
-            val file = if (bg.contains(File.separator)) {
-                File(bg)
-            } else {
-                appCtx.externalFiles.getFile(READ_BG_DIR, bg)
-            }
-            file.takeIf { it.exists() && it.isFile }
-        }.distinctBy { it.absolutePath }
-    }
+    // 第十六轮：阅读样式条目已整体移除——阅读背景图片不再随备份同步（getReadBackgroundImageFiles/stageReadBackgroundImageFiles 已删除）
 
     private fun resolveThemeBackgroundFile(path: String, prefKey: String): File? {
         val file = when {
@@ -256,14 +162,12 @@ object Backup {
             .writeText(GSON.toJson(runtimeCaches))
     }
 
-    fun stageBackgroundImageFiles(rootPath: String) {
-        getReadBackgroundImageFiles().forEach { bgFile ->
-            bgFile.copyTo(File(rootPath, bgFile.name), overwrite = true)
-        }
+    // 第十六轮：stageReadBackgroundImageFiles 已随「阅读样式」条目移除而删除
+
+    fun stageThemeBackgroundImageFiles(rootPath: String) {
         listOf(PreferKey.bgImage, PreferKey.bgImageN).forEach { prefKey ->
-            appCtx.getPrefString(prefKey)?.let { path ->
-                resolveThemeBackgroundFile(path, prefKey)
-            }?.let { bgFile ->
+            val path = appCtx.getPrefString(prefKey) ?: return@forEach
+            resolveThemeBackgroundFile(path, prefKey)?.let { bgFile ->
                 val targetDir = File(rootPath, prefKey).createFolderIfNotExist()
                 bgFile.copyTo(File(targetDir, bgFile.name), overwrite = true)
             }
@@ -272,6 +176,17 @@ object Backup {
             val targetDir = File(rootPath, prefKey).createFolderIfNotExist()
             bgFile.copyTo(File(targetDir, bgFile.name), overwrite = true)
         }
+    }
+
+    /** 当前主题相关背景图片文件（偏好背景 + 主题配置背景） */
+    fun getThemeBackgroundImageFiles(): List<File> {
+        val files = mutableListOf<File>()
+        listOf(PreferKey.bgImage, PreferKey.bgImageN).forEach { prefKey ->
+            val path = appCtx.getPrefString(prefKey) ?: return@forEach
+            resolveThemeBackgroundFile(path, prefKey)?.let { files.add(it) }
+        }
+        files.addAll(getThemeConfigBackgroundFiles().map { it.second })
+        return files.distinctBy { it.absolutePath }
     }
 
     fun stageHighlightRuleBackgroundFiles(rootPath: String) {
@@ -324,17 +239,6 @@ object Backup {
             .listFiles()
             ?.mapTo(arrayListOf()) { it.absolutePath }
             ?: arrayListOf()
-        val paths = arrayListOf(*backupFileNames)
-        for (i in 0 until paths.size) {
-            paths[i] = backupPath + File.separator + paths[i]
-        }
-        val bgFiles = getBackgroundImageFiles()
-        LogUtils.d(TAG, "背景图片文件数量: ${bgFiles.size}")
-        bgFiles.forEach {
-            LogUtils.d(TAG, "添加背景图片: ${it.absolutePath}")
-            paths.add(it.absolutePath)
-        }
-        return paths
     }
 
     /**
@@ -436,63 +340,57 @@ object Backup {
         val aes = BackupAES()
         FileUtils.delete(backupPath)
 
-        val selectedFiles = BackupSelectorConfig.getSelectedFileNames()
-
         // 导出数据库数据到JSON文件
-        if (selectedFiles.contains("bookshelf.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_BOOKSHELF)) {
             writeListToJson(appDb.bookDao.all, "bookshelf.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("bookmark.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_BOOKMARK)) {
             writeListToJson(appDb.bookmarkDao.all, "bookmark.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("bookGroup.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_BOOK_GROUP)) {
             writeListToJson(appDb.bookGroupDao.all, "bookGroup.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("bookSource.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_BOOK_SOURCE)) {
             writeListToJson(appDb.bookSourceDao.all, "bookSource.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("rssSources.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_RSS_SOURCE)) {
             writeListToJson(appDb.rssSourceDao.all, "rssSources.json", backupPath, onProgress)
-        }
-        if (selectedFiles.contains("rssStar.json")) {
             writeListToJson(appDb.rssStarDao.all, "rssStar.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("replaceRule.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_REPLACE_RULE)) {
             writeListToJson(appDb.replaceRuleDao.all, "replaceRule.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains(HighlightRuleStore.backupFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_HIGHLIGHT_RULE)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(HighlightRuleStore.backupFileName))
             FileUtils.createFileIfNotExist(backupPath + File.separator + HighlightRuleStore.backupFileName)
                 .writeText(GSON.toJson(HighlightRuleStore.createBackupData(appCtx)))
         }
-        if (selectedFiles.contains("readRecord.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_READ_RECORD)) {
             writeListToJson(appDb.readRecordDao.all, "readRecord.json", backupPath, onProgress)
-        }
-        if (selectedFiles.contains("readRecordDetail.json")) {
             writeListToJson(appDb.readRecordDao.getAllDetailsList(), "readRecordDetail.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("searchHistory.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_SEARCH_HISTORY)) {
             writeListToJson(appDb.searchKeywordDao.all, "searchHistory.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("txtTocRule.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_TXT_TOC_RULE)) {
             writeListToJson(appDb.txtTocRuleDao.all, "txtTocRule.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("httpTTS.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_HTTP_TTS)) {
             writeListToJson(appDb.httpTTSDao.all, "httpTTS.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("keyboardAssists.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_KEYBOARD_ASSIST)) {
             writeListToJson(appDb.keyboardAssistsDao.all, "keyboardAssists.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains("dictRule.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_DICT_RULE)) {
             writeListToJson(appDb.dictRuleDao.all, "dictRule.json", backupPath, onProgress)
         }
-        if (selectedFiles.contains(CoverGalleryRepository.backupDirName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_COVER)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(CoverGalleryRepository.backupDirName))
             stageCoverGallery(backupPath)
         }
 
         // 服务器配置需要加密存储
-        if (selectedFiles.contains("servers.json")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_SERVERS)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName("servers.json"))
             GSON.toJson(appDb.serverDao.all).let { json ->
                 aes.runCatching {
@@ -506,24 +404,11 @@ object Backup {
 
         currentCoroutineContext().ensureActive()
 
-        // 导出阅读配置
-        if (selectedFiles.contains(ReadBookConfig.configFileName)) {
-            onProgress?.invoke(BackupInfoHelper.getDisplayName(ReadBookConfig.configFileName))
-            GSON.toJson(ReadBookConfig.getBackupConfigList()).let {
-                FileUtils.createFileIfNotExist(backupPath + File.separator + ReadBookConfig.configFileName)
-                    .writeText(it)
-            }
-        }
-        if (selectedFiles.contains(ReadBookConfig.shareConfigFileName)) {
-            onProgress?.invoke(BackupInfoHelper.getDisplayName(ReadBookConfig.shareConfigFileName))
-            GSON.toJson(ReadBookConfig.getBackupShareConfig()).let {
-                FileUtils.createFileIfNotExist(backupPath + File.separator + ReadBookConfig.shareConfigFileName)
-                    .writeText(it)
-            }
-        }
+        // 第十六轮：阅读样式条目已整体移除——阅读配置（readConfig.json/shareConfig.json）不再随备份同步；
+        // config.xml 中的阅读样式配置键由 SyncSelection.keyAllowed 恒定排除
 
         // 导出主题配置
-        if (selectedFiles.contains(ThemeConfig.configFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_THEME)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(ThemeConfig.configFileName))
             GSON.toJson(ThemeConfig.configList).let {
                 FileUtils.createFileIfNotExist(backupPath + File.separator + ThemeConfig.configFileName)
@@ -532,7 +417,7 @@ object Backup {
         }
 
         // 导出直链上传配置
-        if (selectedFiles.contains(DirectLinkUpload.ruleFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_DIRECT_LINK)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(DirectLinkUpload.ruleFileName))
             DirectLinkUpload.getConfig()?.let {
                 FileUtils.createFileIfNotExist(backupPath + File.separator + DirectLinkUpload.ruleFileName)
@@ -541,7 +426,7 @@ object Backup {
         }
 
         // 导出封面规则配置
-        if (selectedFiles.contains(BookCover.configFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_COVER)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(BookCover.configFileName))
             BookCover.getConfig()?.let {
                 FileUtils.createFileIfNotExist(backupPath + File.separator + BookCover.configFileName)
@@ -552,13 +437,13 @@ object Backup {
         currentCoroutineContext().ensureActive()
 
         // 导出SharedPreferences配置（应用主配置）
-        if (selectedFiles.contains("config.xml")) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_APP_CONFIG)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName("config.xml"))
             appCtx.getSharedPreferences(backupPath, "config")?.let { sp ->
                 val edit = sp.edit()
                 edit.clear()
                 appCtx.defaultSharedPreferences.all.forEach { (key, value) ->
-                    if (BackupConfig.keyIsNotIgnore(key)) {
+                    if (SyncSelection.keyAllowed(key)) {
                         when (key) {
                             // WebDav密码需要加密存储
                             PreferKey.webDavPassword -> {
@@ -586,18 +471,19 @@ object Backup {
         currentCoroutineContext().ensureActive()
 
         // 打包成ZIP文件
-        if (selectedFiles.contains("bg")) {
-            onProgress?.invoke(BackupInfoHelper.getDisplayName("backgroundImages"))
-            stageBackgroundImageFiles(backupPath)
+        // 第十六轮：阅读背景图片（backgroundImages）不再随备份同步
+        if (SyncSelection.isSelected(SyncSelection.LEAF_THEME)) {
+            onProgress?.invoke(BackupInfoHelper.getDisplayName("themeBackgroundImages"))
+            stageThemeBackgroundImageFiles(backupPath)
         }
-        if (selectedFiles.contains(HighlightRuleStore.backupFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_HIGHLIGHT_RULE)) {
             stageHighlightRuleBackgroundFiles(backupPath)
         }
-        if (selectedFiles.contains(runtimeSourceCacheFileName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_SOURCE_CACHE)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(runtimeSourceCacheFileName))
             stageRuntimeSourceCaches(backupPath)
         }
-        if (selectedFiles.contains(bookCacheFolderName)) {
+        if (SyncSelection.isSelected(SyncSelection.LEAF_BOOK_CACHE)) {
             onProgress?.invoke(BackupInfoHelper.getDisplayName(bookCacheFolderName))
             stageBookCache(backupPath)
             // 备份书籍缓存时，同时备份对应书籍的章节目录
@@ -652,9 +538,13 @@ object Backup {
 
         currentCoroutineContext().ensureActive()
 
-        // 上传背景图片到WebDav
+        // 上传背景图片到WebDav（按勾选内容）
         onProgress?.invoke(BackupInfoHelper.getDisplayName("webDavBackgroundImages"))
-        AppWebDav.upBgs(getBackgroundImageFiles().toTypedArray())
+        // 第十六轮：阅读样式条目已整体移除——阅读背景图片不再上传 WebDAV
+        val bgFiles = buildList {
+            if (SyncSelection.isSelected(SyncSelection.LEAF_THEME)) addAll(getThemeBackgroundImageFiles())
+        }
+        AppWebDav.upBgs(bgFiles.toTypedArray())
     }
 
     /**

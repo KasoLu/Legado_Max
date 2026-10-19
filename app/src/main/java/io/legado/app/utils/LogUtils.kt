@@ -26,9 +26,20 @@ object LogUtils {
     const val TIME_PATTERN = "yy-MM-dd HH:mm:ss.SSS"
     val logTimeFormat by lazy { SimpleDateFormat(TIME_PATTERN) }
 
+    private var fileHandler: FileHandler? = null
+    private var appContext: Context? = null
+
+    /**
+     * 初始化文件日志。仅当 recordLog 开启时才创建文件 handler（并生成日志文件）；
+     * 关闭时不创建，避免产生大量 0 字节日志文件。
+     * 运行中通过 [upLevel] 开启记录时会按需补建 handler。
+     */
     fun init(context: Context) {
-        fileHandler = createFileHandler(context)?.also {
-            logger.addHandler(it)
+        appContext = context.applicationContext
+        if (AppConfig.recordLog) {
+            fileHandler = createFileHandler(context)?.also {
+                logger.addHandler(it)
+            }
         }
     }
 
@@ -52,8 +63,6 @@ object LogUtils {
         Logger.getLogger("Legado")
     }
 
-    private var fileHandler: FileHandler? = null
-
     private fun createFileHandler(context: Context): FileHandler? {
         try {
             val root = context.externalCacheDir ?: return null
@@ -71,8 +80,16 @@ object LogUtils {
             return AsyncFileHandler(logPath).apply {
                 formatter = object : java.util.logging.Formatter() {
                     override fun format(record: LogRecord): String {
-                        // 设置文件输出格式
-                        return getCurrentDateStr(TIME_PATTERN) + ": " + record.message + "\n"
+                        // LogRecord 无公开 time 属性；getInstant() 为 API 26+，
+                        // 低版本/异常时回退当前时间（异步写盘的时间漂移仅限排队时延）
+                        // LogRecord.millis 为记录创建时刻（纯 long，无 java.time 依赖）；为 0 时回退当前时间
+                        val epoch = if (record.millis > 0L) {
+                            record.millis
+                        } else {
+                            System.currentTimeMillis()
+                        }
+                        val time = SimpleDateFormat(TIME_PATTERN).format(Date(epoch))
+                        return time + ": " + record.message + "\n"
                     }
                 }
                 level = if (AppConfig.recordLog) {
@@ -88,13 +105,24 @@ object LogUtils {
         }
     }
 
+    /**
+     * 更新文件日志级别（记录开关变化时调用）。
+     * 开启记录且 handler 尚未创建（启动时开关为关）时，补建 handler 并挂到 logger。
+     */
     fun upLevel() {
-        val level = if (AppConfig.recordLog) {
-            Level.INFO
+        if (AppConfig.recordLog) {
+            val handler = fileHandler
+            if (handler == null) {
+                val context = appContext ?: return
+                fileHandler = createFileHandler(context)?.also {
+                    logger.addHandler(it)
+                }
+            } else {
+                handler.level = Level.INFO
+            }
         } else {
-            Level.OFF
+            fileHandler?.level = Level.OFF
         }
-        fileHandler?.level = level
     }
 
     /**

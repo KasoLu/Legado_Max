@@ -8,14 +8,6 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -31,15 +23,11 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.storage.Backup
-import io.legado.app.help.storage.BackupConfig
 import io.legado.app.help.storage.BackupFileValidator
-import io.legado.app.help.storage.BackupInfoHelper
-import io.legado.app.help.storage.BackupSelectorConfig
+import io.legado.app.help.storage.SyncSelection
 import io.legado.app.help.storage.BookCacheSelectorConfig
 import io.legado.app.help.storage.ImportOldData
 import io.legado.app.help.storage.Restore
-import io.legado.app.help.storage.ValidationResult
-import io.legado.app.help.storage.ValidationState
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.permission.Permissions
@@ -48,7 +36,6 @@ import io.legado.app.lib.prefs.fragment.PreferenceFragment
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.file.HandleFileContract
-import io.legado.app.ui.theme.LegadoTheme
 import io.legado.app.ui.widget.dialog.BackupInfoDialog
 import io.legado.app.ui.widget.dialog.WaitDialog
 import io.legado.app.utils.FileDoc
@@ -104,33 +91,18 @@ class BackupConfigFragment : PreferenceFragment(),
         result.uri?.let { uri ->
             if (uri.isContentScheme()) {
                 AppConfig.backupPath = uri.toString()
-                backup(uri.toString())
+                showSyncSelectionDialog(SyncSelectionDialogMode.ACTION) { backup() }
             } else {
                 uri.path?.let { path ->
                     AppConfig.backupPath = path
-                    backup(path)
+                    showSyncSelectionDialog(SyncSelectionDialogMode.ACTION) { backup() }
                 }
             }
         }
     }
     private val restoreDoc = registerForActivityResult(HandleFileContract()) {
         it.uri?.let { uri ->
-            if (AppConfig.restoreShowSelector) {
-                showRestoreFileSelector(uri)
-            } else {
-                waitDialog.setText(getString(R.string.fvd_restoring))
-                waitDialog.show()
-                val task = Coroutine.async {
-                    Restore.restore(appCtx, uri) { itemName ->
-                        updateWaitDialog(getString(R.string.restore), itemName)
-                    }
-                }.onFinally {
-                    waitDialog.dismiss()
-                }
-                waitDialog.setOnCancelListener {
-                    task.cancel()
-                }
-            }
+            showRestoreFileSelector(uri)
         }
     }
     private val restoreOld = registerForActivityResult(HandleFileContract()) {
@@ -179,6 +151,7 @@ class BackupConfigFragment : PreferenceFragment(),
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
         listView.setEdgeEffectColor(primaryColor)
         activity?.addMenuProvider(this, viewLifecycleOwner)
+        upSelectorSummary()
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
@@ -250,7 +223,7 @@ class BackupConfigFragment : PreferenceFragment(),
             else -> {
                 if (preference is ListPreference) {
                     val index = preference.findIndexOfValue(value)
-                    // Set the summary to reflect the new value.
+                    // Set the summary to reflect the value.
                     preference.summary = if (index >= 0) preference.entries[index] else null
                 } else {
                     preference.summary = value
@@ -262,10 +235,9 @@ class BackupConfigFragment : PreferenceFragment(),
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
             PreferKey.backupPath -> selectBackupPath.launch()
-            PreferKey.restoreIgnore -> backupIgnore()
             "backup_selector" -> showBackupSelector()
             "book_cache_selector" -> showBookCacheSelector()
-            "web_dav_backup" -> backup()
+            "web_dav_backup" -> showSyncSelectionDialog(SyncSelectionDialogMode.ACTION) { backup() }
             "web_dav_restore" -> restore()
             "import_old" -> restoreOld.launch()
             "viewBackupInfo" -> showBackupInfo()
@@ -274,52 +246,12 @@ class BackupConfigFragment : PreferenceFragment(),
         return super.onPreferenceTreeClick(preference)
     }
 
-    /**
-     * 备份忽略设置
-     */
-    private fun backupIgnore() {
-        val checkedItems = BooleanArray(BackupConfig.ignoreKeys.size) {
-            BackupConfig.ignoreConfig[BackupConfig.ignoreKeys[it]] ?: false
-        }
-        alert(R.string.restore_ignore) {
-            multiChoiceItems(BackupConfig.ignoreTitle, checkedItems) { _, which, isChecked ->
-                BackupConfig.ignoreConfig[BackupConfig.ignoreKeys[which]] = isChecked
-            }
-            onDismiss {
-                BackupConfig.saveIgnoreConfig()
-            }
-        }
-    }
 
     /**
-     * 显示备份选择器
+     * 打开备份/恢复内容树选择对话框（设置页入口，关闭即保存）
      */
     private fun showBackupSelector() {
-        val items = BackupSelectorConfig.allItems
-        val titles = items.map { "[${it.group}] ${it.title}" }.toTypedArray()
-        val checkedItems = BooleanArray(items.size) { index ->
-            BackupSelectorConfig.isSelected(items[index].key)
-        }
-        
-        alert(R.string.backup_selector) {
-            multiChoiceItems(titles, checkedItems) { _, which, isChecked ->
-                BackupSelectorConfig.setSelected(items[which].key, isChecked)
-            }
-            positiveButton(R.string.select_all) {
-                BackupSelectorConfig.selectAll()
-                showBackupSelector()
-            }
-            negativeButton(R.string.un_select_all) {
-                BackupSelectorConfig.deselectAll()
-                showBackupSelector()
-            }
-            neutralButton(R.string.ok) {
-                BackupSelectorConfig.save()
-            }
-            onDismiss {
-                BackupSelectorConfig.save()
-            }
-        }
+        showSyncSelectionDialog(SyncSelectionDialogMode.SETTINGS)
     }
 
     /**
@@ -468,20 +400,14 @@ class BackupConfigFragment : PreferenceFragment(),
         val task = Coroutine.async {
             AppWebDav.downloadAndUnzipBackup(name)
         }.onSuccess {
-            if (AppConfig.restoreShowSelector) {
-                showRestoreSelectorFromPath(Backup.backupPath)
-            } else {
-                waitDialog.setText(getString(R.string.fvd_restoring))
-                val restoreTask = Coroutine.async {
-                    Restore.restoreLocked(Backup.backupPath) { itemName ->
-                        updateWaitDialog(getString(R.string.restore), itemName)
-                    }
-                }.onFinally {
-                    waitDialog.dismiss()
-                }
-                waitDialog.setOnCancelListener {
-                    restoreTask.cancel()
-                }
+            val fileNames = listZipFileNames(Backup.backupPath)
+            waitDialog.dismiss()
+            if (fileNames.isEmpty()) {
+                appCtx.toastOnUi(getString(R.string.fvd_backup_empty))
+                return@onSuccess
+            }
+            showSyncSelectionDialog(SyncSelectionDialogMode.ACTION, fileNames.toSet()) {
+                startRestore(Backup.backupPath)
             }
         }.onError {
             AppLog.put("WebDav恢复出错\n${it.localizedMessage}", it)
@@ -503,7 +429,7 @@ class BackupConfigFragment : PreferenceFragment(),
 
     /**
      * 显示恢复文件选择对话框
-     * 解压ZIP并列出文件供用户选择
+     * 解压ZIP后打开统一内容树选择对话框
      */
     private fun showRestoreFileSelector(uri: android.net.Uri) {
         waitDialog.setText(getString(R.string.fvd_reading_backup))
@@ -523,158 +449,135 @@ class BackupConfigFragment : PreferenceFragment(),
                     }
                 }
 
-                showRestoreSelectorFromPath(tempPath)
+                val fileNames = listZipFileNames(tempPath)
+                waitDialog.dismiss()
+                if (fileNames.isEmpty()) {
+                    appCtx.toastOnUi(getString(R.string.fvd_backup_empty))
+                    return@launch
+                }
+                showSyncSelectionDialog(SyncSelectionDialogMode.ACTION, fileNames.toSet()) {
+                    startRestore(tempPath)
+                }
             } catch (e: Exception) {
                 waitDialog.dismiss()
                 AppLog.put("读取备份文件出错\n${e.localizedMessage}", e)
-                appCtx.toastOnUi(getString(R.string.fvd_read_backup_error, e.localizedMessage))
+                appCtx.toastOnUi(getString(R.string.fvd_read_backup_error, e.message))
             }
         }
     }
 
     /**
-     * 从已解压的目录显示恢复文件选择器
+     * 列出备份（已解压目录）顶层实际存在的条目名，用于选择对话框的存在性标记
      */
-    private fun showRestoreSelectorFromPath(tempPath: String) {
-        lifecycleScope.launch {
-            try {
-                // 获取文件和目录列表
-                val files = withContext(IO) {
-                    java.io.File(tempPath).listFiles()
-                        ?.filter { it.isFile && (it.name.endsWith(".json") || it.name.endsWith(".xml")) || it.isDirectory }
-                        ?.map { entry ->
-                            val size = if (entry.isDirectory) {
-                                entry.walkTopDown().filter { f -> f.isFile }.sumOf { f -> f.length() }
-                            } else {
-                                entry.length()
-                            }
-                            BackupInfoHelper.BackupFileInfo(
-                                fileName = entry.name,
-                                displayName = BackupInfoHelper.displayNameMap[entry.name] ?: entry.name,
-                                size = size,
-                                selected = true
-                            )
-                        } ?: emptyList()
-                }
+    private fun listZipFileNames(path: String): List<String> =
+        java.io.File(path).listFiles()
+            ?.filter { it.isFile && (it.name.endsWith(".json") || it.name.endsWith(".xml")) || it.isDirectory }
+            ?.map { it.name }
+            ?: emptyList()
 
-                waitDialog.dismiss()
-
-                if (files.isEmpty()) {
-                    appCtx.toastOnUi(getString(R.string.fvd_backup_empty))
-                    return@launch
-                }
-
-                // 显示选择对话框
-                showFileSelectionDialog(files, tempPath)
-            } catch (e: Exception) {
-                waitDialog.dismiss()
-                AppLog.put("读取备份文件出错\n${e.localizedMessage}", e)
-                appCtx.toastOnUi(getString(R.string.fvd_read_backup_error, e.localizedMessage))
+    /**
+     * 开始恢复指定目录的备份（依据当前 SyncSelection 状态）
+     */
+    private fun startRestore(path: String) {
+        waitDialog.setText(getString(R.string.fvd_restoring))
+        waitDialog.show()
+        val task = Coroutine.async {
+            Restore.restoreLocked(path) { itemName ->
+                updateWaitDialog(getString(R.string.restore), itemName)
             }
+        }.onFinally {
+            waitDialog.dismiss()
+        }
+        waitDialog.setOnCancelListener {
+            task.cancel()
         }
     }
-    
-    private var validationResults = mutableMapOf<String, ValidationResult>()
+
     private var validationJob: Job? = null
-    private var composeDialogView: View? = null
-    
-    private fun showFileSelectionDialog(
-        files: List<BackupInfoHelper.BackupFileInfo>,
-        backupPath: String
+    private var syncDialog: SyncSelectionPickerDialog? = null
+
+    /**
+     * 显示备份/恢复内容树选择对话框（独立 AppCompatDialog 窗口承载，面板内容为纯 View 实现）。
+     *
+     * 第八轮起面板内容由 ComposeView 改为纯 View（[SyncSelectionPickerDialog]）：
+     * 部分设备（Android 10 + 联发科）上面板内 Compose 行（LazyColumn 复选框行）的触摸
+     * 事件无法送达/不生效，导致「取消勾选阅读样式 + 确定」不生效；纯 View 走标准
+     * AppCompat 触摸分发路径，与 App 内其余对话框一致，规避该问题。
+     * 窗口销毁 = 面板销毁，返回键/点外部/页面销毁统一由窗口机制处理。
+     *
+     * @param mode SETTINGS=设置页入口（关闭即保存）；ACTION=备份/恢复前置面板（确认后继续执行）
+     * @param zipFileNames 待恢复备份内的条目名集合（备份场景传 null）
+     * @param onConfirm 确认回调（仅 ACTION 模式触发，状态回写已完成）
+     */
+    private fun showSyncSelectionDialog(
+        mode: SyncSelectionDialogMode,
+        zipFileNames: Set<String>? = null,
+        onConfirm: () -> Unit = {}
     ) {
-        validationResults.clear()
-        dismissComposeDialog()
-        
+        dismissSyncDialog()
         val activity = requireActivity()
-        val rootView = activity.window.decorView as? ViewGroup ?: return
-        
-        var showDialog by mutableStateOf(true)
-        var showErrorDialog by mutableStateOf<ValidationResult?>(null)
-        val results = mutableStateMapOf<String, ValidationResult>()
-        
-        val composeView = ComposeView(activity).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                LegadoTheme {
-                    if (showDialog) {
-                        FileValidationDialog(
-                            files = files,
-                            validationResults = results,
-                            onValidate = {
-                                validationJob?.cancel()
-                                validationJob = lifecycleScope.launch {
-                                    try {
-                                        BackupFileValidator.validateFiles(backupPath, files.map { it.fileName }) { fileName, result ->
-                                            results[fileName] = result
-                                            validationResults[fileName] = result
-                                        }
-                                    } catch (e: Exception) {
-                                        appCtx.toastOnUi(getString(R.string.fvd_format_detect_error, e.message))
-                                    }
-                                }
-                            },
-                            onConfirm = { selectedFiles ->
-                                if (selectedFiles.isEmpty()) {
-                                    appCtx.toastOnUi(getString(R.string.fvd_select_at_least_one))
-                                    return@FileValidationDialog
-                                }
-                                showDialog = false
-                                dismissComposeDialog()
-                                
-                                validationJob?.cancel()
-                                waitDialog.setText(getString(R.string.fvd_restoring))
-                                waitDialog.show()
-                                val task = Coroutine.async {
-                                    Restore.restoreSelected(appCtx, backupPath, selectedFiles) { itemName ->
-                                        updateWaitDialog(getString(R.string.restore), itemName)
-                                    }
-                                }.onFinally {
-                                    waitDialog.dismiss()
-                                }
-                                waitDialog.setOnCancelListener {
-                                    task.cancel()
-                                }
-                            },
-                            onDismiss = {
-                                showDialog = false
-                                dismissComposeDialog()
-                                validationJob?.cancel()
-                            },
-                            onInfoClick = { result ->
-                                showErrorDialog = result
-                            }
-                        )
-                        
-                        showErrorDialog?.let { result ->
-                            ValidationErrorDetailDialog(
-                                result = result,
-                                onDismiss = { showErrorDialog = null }
-                            )
+        // 先声明引用再建实例：onValidate/onDismissed 等 lambda 只能捕获已声明的 var，
+        // 不能自引用尚在初始化中的 val（构造参数内引用会编译报错）
+        var dlg: SyncSelectionPickerDialog? = null
+        dlg = SyncSelectionPickerDialog(
+            activity = activity,
+            mode = mode,
+            zipFileNames = zipFileNames,
+            onValidate = { files ->
+                val d = dlg ?: return@SyncSelectionPickerDialog
+                if (files.isEmpty()) return@SyncSelectionPickerDialog
+                validationJob?.cancel()
+                validationJob = lifecycleScope.launch {
+                    try {
+                        BackupFileValidator.validateFiles(Backup.backupPath, files) { fileName, result ->
+                            d.updateValidationResult(fileName, result)
                         }
+                    } catch (e: Exception) {
+                        appCtx.toastOnUi(getString(R.string.fvd_format_detect_error, e.message))
                     }
                 }
+            },
+            onActionConfirmed = {
+                if (mode == SyncSelectionDialogMode.ACTION) onConfirm()
+            },
+            onDismissed = {
+                if (dlg == syncDialog) syncDialog = null
+                // 延迟到下一帧：保证面板 onDismiss 兜底保存（SETTINGS 模式）先完成，再刷新摘要
+                activity.window?.decorView?.post {
+                    if (isAdded) upSelectorSummary()
+                }
             }
-        }
-        
-        val layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
         )
-        rootView.addView(composeView, layoutParams)
-        composeDialogView = composeView
+        syncDialog = dlg
+        dlg?.show()
     }
-    
-    private fun dismissComposeDialog() {
-        composeDialogView?.let { view ->
-            val parent = view.parent as? ViewGroup
-            parent?.removeView(view)
+
+    private fun dismissSyncDialog() {
+        syncDialog?.let { dialog ->
+            if (dialog == syncDialog) syncDialog = null
+            if (dialog.isShowing) dialog.dismiss()
         }
-        composeDialogView = null
+    }
+
+    /**
+     * 刷新「备份/恢复内容」条目摘要：展示当前实际持久化的状态，
+     * 并附上持久化文件的磁盘实况（版本/阅读样式/修改时间），便于当场核对保存是否真的落到磁盘。
+     */
+    private fun upSelectorSummary() {
+        val pref = findPreference<Preference>("backup_selector") ?: return
+        val leaves = SyncSelection.nodes.filter { it.type == SyncSelection.Type.LEAF }
+        val onCount = leaves.count { SyncSelection.isSelected(it.key) }
+        val disk = try {
+            SyncSelection.fileDebugInfo()
+        } catch (e: Exception) {
+            "读取失败: ${e.message}"
+        }
+        pref.summary = "已勾选 $onCount/${leaves.size}（阅读样式不参与多机同步）\n状态文件：$disk"
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        dismissComposeDialog()
+        dismissSyncDialog()
         waitDialog.dismiss()
     }
 
