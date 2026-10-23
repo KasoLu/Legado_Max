@@ -27,4 +27,5 @@ package-lock.json
 .docs
 .omo/
 .artifacts/
-docs/*logs/
+docs/
+logs/
