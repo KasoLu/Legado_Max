@@ -38,6 +38,7 @@ import io.legado.app.ui.book.read.page.entities.column.TextBaseColumn
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.LayoutProgressListener
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
+import io.legado.app.utils.LogUtils
 import io.legado.app.utils.activity
 import io.legado.app.utils.invisible
 import io.legado.app.utils.longToastOnUi
@@ -276,6 +277,13 @@ class ReadView(context: Context, attrs: AttributeSet) :
                         }
                         return true
                     }
+                    //长按超时但没命中任何文本/图片(无选择产生)：按普通点按落回九宫格翻页，
+                    //避免一次恰好滞留超过600ms的点按被静默吞掉
+                    if (longPressed && !pressOnTextSelected) {
+                        onSingleTapUp()
+                        return true
+                    }
+                    return true
                 }
                 // 如果已选择文本，显示操作菜单
                 if (isTextSelected) {
@@ -594,13 +602,13 @@ class ReadView(context: Context, attrs: AttributeSet) :
     }
 
     /**
-     * 上下分屏:占位节(懒加载占位页)是否出现在当前视野(cur/next/nextPlus 三节)内。
+     * 上下分屏:占位节(懒加载占位页)是否出现在即将滚入的节(cur/next)内。
+     * 只锁 cur/next:nextPlus 尚未可见,其占位不参与锁定(滚入后自然成为 next 被锁);
      * 占位节可见时锁定向下滚动(只能向上翻),消失即解锁。
      */
     fun isUpDownPlaceholderVisible(): Boolean {
         return curPage.textPage.isLazyLoading ||
-            (pageFactory.hasNext() && pageFactory.nextPage.isLazyLoading) ||
-            (pageFactory.hasNextPlus() && pageFactory.nextPlusPage.isLazyLoading)
+            (pageFactory.hasNext() && pageFactory.nextPage.isLazyLoading)
     }
 
     /**

@@ -1,7 +1,11 @@
 package io.legado.app.ui.book.read.page.delegate
 
+import android.os.Handler
+import android.os.Looper
 import android.graphics.Canvas
 import android.view.MotionEvent
+import io.legado.app.R
+import io.legado.app.utils.LogUtils
 import io.legado.app.ui.book.read.page.ReadView
 import io.legado.app.ui.book.read.page.entities.PageDirection
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
@@ -19,6 +23,16 @@ class UpDownPageDelegate(readView: ReadView) : PageDelegate(readView) {
     private val scrollDist get() = ChapterProvider.upDownSplitY
     /** 上一帧 scroller.currY，用于算每帧增量(不让 pageFactory 修正 offset 影响步长) */
     private var lastCurrY = 0
+    /** 补帧驱动：draw 调度丢帧时每 16ms 直接 invalidate 一帧 */
+    private val driveHandler = Handler(Looper.getMainLooper())
+    private val driveTick = object : Runnable {
+        override fun run() {
+            if (isStarted && !scroller.isFinished) {
+                readView.invalidate()
+                driveHandler.postDelayed(this, 16)
+            }
+        }
+    }
 
     override fun onTouch(event: MotionEvent) {
         // 不做自由滚动/跟手；按下也不取消进行中的滚动——
@@ -45,7 +59,14 @@ class UpDownPageDelegate(readView: ReadView) : PageDelegate(readView) {
             if (delta != 0) {
                 curPage.scroll(delta.toInt())
             }
+            // 无条件续帧：首帧与 startScroll 同毫秒时 currY=0、delta=0，
+            // 若依赖 scroll() 里的 postInvalidate 续帧，动画会在这帧之后静默死亡
+            curPage.postInvalidate()
+            // 兜底驱动：postInvalidateOnAnimation 的 ANIMATION 回调帧实测会整段丢失
+            // (死帧后 1 秒无任何绘制)，改用 Handler 每 16ms 直接 invalidate 补帧直到动画结束
+            driveHandler.postDelayed(driveTick, 16)
         } else if (isStarted) {
+            driveHandler.removeCallbacks(driveTick)
             onAnimStop()
             stopScroll()
         }
@@ -61,6 +82,7 @@ class UpDownPageDelegate(readView: ReadView) : PageDelegate(readView) {
     }
 
     override fun abortAnim() {
+driveHandler.removeCallbacks(driveTick)
         isStarted = false
         isMoved = false
         isRunning = false
@@ -74,9 +96,14 @@ class UpDownPageDelegate(readView: ReadView) : PageDelegate(readView) {
     /** 九宫格"下一截"按钮：向上滚一截(内容上移，露出下方内容) */
     override fun nextPageByAnim(animationSpeed: Int) {
         abortAnim()
+driveHandler.removeCallbacks(driveTick)
         if (!hasNext()) return
         //占位节在视野内:锁定向下滚动,只能向上翻
-        if (readView.isUpDownPlaceholderVisible()) return
+        if (readView.isUpDownPlaceholderVisible()) {
+            //占位节可见期间锁定向下:点按不静默,给出加载反馈,数据到位后自动切换
+            showSnackBar(R.string.next_chapter_loading)
+            return
+        }
         setDirection(PageDirection.NEXT)
         readView.setStartPoint(viewWidth * 0.5f, viewHeight * 0.5f, false)
         onAnimStart(animationSpeed)

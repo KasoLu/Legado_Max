@@ -388,6 +388,7 @@
     <string name="source_no_login">當前源沒有配置登陸地址</string>
     <string name="no_prev_page">沒有上一頁</string>
     <string name="no_next_page">沒有下一頁</string>
+    <string name="next_chapter_loading">下一章加載中…</string>
 
     <!-- source start-->
     <string name="source_name">源名稱 (sourceName)</string>

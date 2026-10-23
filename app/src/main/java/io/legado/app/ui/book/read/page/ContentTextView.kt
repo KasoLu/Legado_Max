@@ -31,6 +31,7 @@ import io.legado.app.ui.book.read.page.entities.column.TextColumn
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.ui.widget.dialog.PhotoDialog
+import io.legado.app.utils.LogUtils
 import io.legado.app.utils.LinkAnchor
 import io.legado.app.utils.activity
 import io.legado.app.utils.dpToPx
@@ -274,6 +275,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         // 其他模式仍用整页高
         get() = if (ChapterProvider.upDownPage) ChapterProvider.upDownSplitY else textPage.height
     fun scroll(mOffset: Int) {
+        val oldOffset = pageOffset
         pageOffset += mOffset
         if (longScreenshot) {
             scrollY += -mOffset
@@ -916,16 +918,26 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
     }
     /**
+     * 上下分屏:本节无文本行(纯图片/仅本章说入口等)时沿用的上一次行高;
+     * 从未有过文本(如开书第一节即图片)保持0。
+     */
+    private var lastUpDownLineHeight: Float = 0f
+
+    /**
      * 上下分屏 viewport 下移量 = 当前页第一行文本的行高 + 2 倍分割线内边距(upDownMargin)。
      * 加 1 倍 padding 后顶部是完整一行 + 空隙；再加 1 倍，尾行上方还多出一段边距，
      * 顶部分割线距正文顶部一行高 + 2*padding，观感上尾行不与屏幕边缘相贴。
      * 内容与分割线整体下移该值（渲染基准与触摸命中同量偏移），滚动步长与分页逻辑不变。
+     * 兜底:本节无文本行时行高部分沿用 lastUpDownLineHeight，从未有过则取0，最终偏移仍含两倍 padding。
      */
+
     private val upDownShiftY: Float
         get() = if (ChapterProvider.upDownPage) {
-            (textPage.lines.firstOrNull { !it.isImage }?.height
-                ?: textPage.lines.firstOrNull()?.height
-                ?: 0f) + 2f * ChapterProvider.upDownMargin
+            val lineHeight = textPage.lines
+                .firstOrNull { it.columns.any { c -> c is TextColumn } }
+                ?.height ?: lastUpDownLineHeight
+            if (lineHeight > 0f) lastUpDownLineHeight = lineHeight
+            lineHeight + 2f * ChapterProvider.upDownMargin
         } else 0f
 
     fun relativePage(relativePos: Int): TextPage {

@@ -423,6 +423,7 @@
     <string name="source_no_login">The current source has not configured with a login address</string>
     <string name="no_prev_page">No prior page</string>
     <string name="no_next_page">No next page</string>
+    <string name="next_chapter_loading">Next chapter loading…</string>
 
     <!-- source start-->
     <string name="source_name">Source Name(sourceName)</string>

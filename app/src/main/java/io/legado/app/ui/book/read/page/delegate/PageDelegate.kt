@@ -197,6 +197,11 @@ abstract class PageDelegate(protected val readView: ReadView) {
         }
     }
 
+    /** 显示一个 Snackbar 提示(复用同一实例,重复调用会顶替旧提示) */
+    fun showSnackBar(resId: Int) {
+        snackBar.setText(resId)
+        snackBar.show()
+    }
     fun postInvalidate() {
         if (isStarted && isRunning && this is HorizontalPageDelegate) {
             readView.post {
