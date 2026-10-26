@@ -91,7 +91,8 @@ abstract class BaseReadBookActivity :
         binding.navigationBar.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updateLayoutParams {
-                height = insets.bottom
+                // 单手模式窗口内无导航栏：spacer 恒 0（确定性，不依赖 inset 派发）
+                height = if (AppConfig.oneHandMode) 0 else insets.bottom
             }
             windowInsets
         }
@@ -161,6 +162,24 @@ abstract class BaseReadBookActivity :
         toolBarHide: Boolean = true,
         useBgMeanColor: Boolean = false
     ) {
+        if (AppConfig.oneHandMode) {
+            // 单手模式窗口内无系统栏：一律保持隐藏，与 BaseActivity 一致（阅读屏不得重新唤出状态栏/导航栏）
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.run {
+                    hide(WindowInsets.Type.statusBars())
+                    hide(WindowInsets.Type.navigationBars())
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.run {
                 if (toolBarHide && ReadBookConfig.hideNavigationBar) {

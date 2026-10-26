@@ -77,4 +77,7 @@ object EventBus {
 
     // ── 封面模板 ──
     const val COVER_HTML_TEMPLATE_CHANGED = "coverHtmlTemplateChanged"  // HTML封面模板变更
+
+    // ── 显示 ──
+    const val ONE_HAND_MODE_CHANGED = "oneHandModeChanged"    // 单手模式开关变更
 }

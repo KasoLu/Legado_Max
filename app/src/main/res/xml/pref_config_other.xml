@@ -112,6 +112,13 @@
         app:iconSpaceReserved="false"
         app:layout="@layout/view_preference_category">
 
+        <!-- T2 单手模式 -->
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="oneHandMode"
+            android:summary="@string/ps_one_hand_mode"
+            android:title="@string/pt_one_hand_mode" />
+
         <!-- T2 自动清理过期数据 -->
         <io.legado.app.lib.prefs.SwitchPreference
             android:defaultValue="true"

@@ -122,15 +122,23 @@ fun Int.dpToPx(): Int = this.toFloat().dpToPx().toInt()
 
 fun Int.spToPx(): Int = this.toFloat().spToPx().toInt()
 
+/**
+ * 单手模式内容窗口密度缩放系数（见 AppConfig.ONE_HAND_DENSITY_SCALE）。
+ * 单手模式下 dpToPx/spToPx 结果乘以该系数，使全部代码计算尺寸随小窗同比例变化
+ * （dp/sp 与密度是线性关系，乘系数与改密度等价）；由 BaseActivity 的 applyOneHandMode/removeOneHandMode 维护。
+ */
+@Volatile
+var oneHandDensityScale: Float = 1f
+
 fun Float.dpToPx(): Float {
     val displayMetrics = Resources.getSystem().displayMetrics
     return if (displayMetrics != null) {
         android.util.TypedValue.applyDimension(
             android.util.TypedValue.COMPLEX_UNIT_DIP, this, displayMetrics
-        )
+        ) * oneHandDensityScale
     } else {
         // Fallback: use typical density (2.75 is common for xhdpi devices)
-        this * 2.75f
+        this * 2.75f * oneHandDensityScale
     }
 }
 
@@ -139,9 +147,9 @@ fun Float.spToPx(): Float {
     return if (displayMetrics != null) {
         android.util.TypedValue.applyDimension(
             android.util.TypedValue.COMPLEX_UNIT_SP, this, displayMetrics
-        )
+        ) * oneHandDensityScale
     } else {
         // Fallback: use typical scaled density (2.75 is common for xhdpi devices)
-        this * 2.75f
+        this * 2.75f * oneHandDensityScale
     }
 }

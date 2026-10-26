@@ -78,6 +78,8 @@
     <string name="theme_setting_s">与界面/颜色相关的一些设置</string>
     <string name="other_setting">其它设置</string>
     <string name="other_setting_s">与功能相关的一些设置</string>
+    <string name="pt_one_hand_mode">单手模式</string>
+    <string name="ps_one_hand_mode">界面缩小到屏幕中间，四周黑底并隐藏状态栏，适合单手操作</string>
     <string name="precise_manage">精准管理</string>
     <string name="precise_manage_summary">更精准的管理</string>
     <string name="about">关于</string>

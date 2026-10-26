@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import android.os.Build
 import io.legado.app.BuildConfig
 import io.legado.app.constant.AppConst
+import io.legado.app.constant.EventBus
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
 import io.legado.app.utils.GSON
@@ -15,6 +16,7 @@ import io.legado.app.utils.getPrefLong
 import io.legado.app.utils.getPrefString
 import io.legado.app.utils.isNightMode
 import io.legado.app.utils.parseIpsFromString
+import io.legado.app.utils.postEvent
 import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefInt
 import io.legado.app.utils.putPrefLong
@@ -153,6 +155,7 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
 
             PreferKey.recordLog -> recordLog = appCtx.getPrefBoolean(PreferKey.recordLog)
 
+            PreferKey.oneHandMode -> postEvent(EventBus.ONE_HAND_MODE_CHANGED, Unit)
             PreferKey.recordUrl -> recordUrl = appCtx.getPrefBoolean(PreferKey.recordUrl)
 
         }
@@ -337,6 +340,12 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     // MD链接用内置浏览器打开，默认关闭
     val mdLinkInnerBrowser: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.mdLinkInnerBrowser, false)
+
+    // 单手模式：开启后整个界面缩小到屏幕中间，四周黑底并隐藏状态栏
+    val oneHandMode: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.oneHandMode, false)
+    /** 单手模式窗口密度缩放（BaseActivity 与 ConvertExtensions 共用）：当前 0.8 = 内容缩小 20%（系统基准幂等施加，无累加）；如需调整改此常量 */
+    const val ONE_HAND_DENSITY_SCALE = 0.8f
 
     val autoRefreshBook: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.autoRefresh)

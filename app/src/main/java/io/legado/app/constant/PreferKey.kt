@@ -13,6 +13,7 @@ object PreferKey {
     const val showUnread = "showUnread"
     const val showBooknameLayout = "showBooknameLayout"
     const val bookshelfMargin = "bookshelfMargin"
+    const val oneHandMode = "oneHandMode"
     const val bookGroupStyle = "bookGroupStyle"
     const val useDefaultCover = "useDefaultCover"
     const val loadCoverOnlyWifi = "loadCoverOnlyWifi"

@@ -132,7 +132,8 @@ class PageView(context: Context) : FrameLayout(context) {
      */
     fun upStatusBar() = with(binding.vwStatusBar) {
 //        setPadding(paddingLeft, context.statusBarHeight, paddingRight, paddingBottom)
-        isGone = ReadBookConfig.hideStatusBar || readBookActivity?.isInMultiWindow == true
+        // 单手模式窗口内无状态栏：spacer 恒 GONE，顶部偏移量不依赖 inset 派发（真机上 CONSUMED 传播不可靠）
+        isGone = ReadBookConfig.hideStatusBar || readBookActivity?.isInMultiWindow == true || AppConfig.oneHandMode
     }
 
     fun upNavigationBar() {
@@ -140,6 +141,12 @@ class PageView(context: Context) : FrameLayout(context) {
     }
 
     fun upPaddingDisplayCutouts() {
+        if (AppConfig.oneHandMode) {
+            // 单手模式窗口内无系统栏/刘海：不读任何 inset，padding 恒 0（确定性，不依赖 inset 派发）
+            ViewCompat.setOnApplyWindowInsetsListener(binding.vwRoot, null)
+            binding.vwRoot.setPadding(0, 0, 0, 0)
+            return
+        }
         if (ReadBookConfig.isNineBgImg) {
             ViewCompat.setOnApplyWindowInsetsListener(binding.vwRoot, null)
             return

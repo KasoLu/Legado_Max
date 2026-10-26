@@ -181,6 +181,7 @@ class TitleBar @JvmOverloads constructor(
                 }
             }
 
+
             if (AppConfig.isEInkMode) {
                 setBackgroundResource(R.drawable.bg_eink_border_bottom)
             } else if (!opaque && context.transparentNavBar) {
@@ -194,6 +195,7 @@ class TitleBar @JvmOverloads constructor(
         }
         a.recycle()
     }
+
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
