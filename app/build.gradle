@@ -27,7 +27,7 @@ static def releaseCode() {
 
 def name = "legado"
 def versionTime = new Date().format("yyMMdd.HHmmss", TimeZone.getTimeZone("GMT+8"))
-def version = "0.1." + versionTime
+def version = versionTime
 def gitCommits = 0
 def bundledReleaseStoreFile = rootProject.file(".github/workflows/legado.jks")
 def resolvedReleaseStoreFile = project.findProperty("RELEASE_STORE_FILE") ? file(project.property("RELEASE_STORE_FILE")) : (bundledReleaseStoreFile.exists() ? bundledReleaseStoreFile : null)
@@ -145,11 +145,7 @@ android {
                     appMax   : "测试版",
                     appLegacy: "兼容版"
             ][flavorName] ?: flavorName
-            def flavorSuffix = [
-                    appS     : "releaseS",
-                    appMax   : "release",
-                    appLegacy: "legacy"
-            ][flavorName] ?: flavorName
+            def flavorSuffix = variant.buildType.name
             outputFileName = "${name}_${flavorLabel}_${defaultConfig.versionName}_${flavorSuffix}.apk"
         }
     }
